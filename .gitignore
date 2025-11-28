@@ -73,11 +73,9 @@ user_data/
 # =============================
 # PDFs / Resume parsing artifacts (optional)
 # =============================
-*.pdf
+# *.pdf
 
 # =============================
-# Media (optional, uncomment if needed)
+# Model (fine-tuned too big)
 # =============================
-# recordings/
-# videos/
-# audio/
+models/jdq_bullet_finetuned/

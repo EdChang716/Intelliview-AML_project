@@ -1,23 +1,21 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException, WebSocket
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi import WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
-from io import BytesIO
-import websockets
-import aiohttp
 
 from pydantic import BaseModel
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
-import json, os
-import sys, random
+import json
+import os
+import sys
+import random
 import shutil
 import asyncio
 from tempfile import NamedTemporaryFile
 
+import aiohttp
 
 from parsers.resume_parser import (
     extract_pdf_text,
@@ -26,18 +24,11 @@ from parsers.resume_parser import (
     extract_structured_education,
 )
 from core.embeddings import build_resume_embeddings
-
 from core.llm_client import client
-#client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", "your_API_key"))
 
-# from the module I built
-from core.config import BASE_DIR, USER_DATA_DIR
-from core.llm_client import client
-from core.profiles import (
-    load_job_profiles,
-    save_job_profiles,
-    load_all_profiles as _load_all_profiles_from_core,
-)
+# from the module you built
+from core.config import USER_DATA_DIR
+from core.profiles import load_job_profiles
 from core.retrieval import (
     retrieve_bullets_for_profile,
     get_bullets_for_entry,
@@ -47,7 +38,6 @@ from core.sessions import (
     load_session,
     get_asked_questions,
     log_practice_turn,
-    log_asked_question,
     get_practice_stats,
 )
 from core.questions import (
@@ -63,10 +53,11 @@ from core.answers import (
 
 from core.transcription import transcribe_media
 from core import mock_interview
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 APP_DIR = Path(__file__).resolve().parent
-ROOT_DIR = APP_DIR  # 你的專案根目錄
+ROOT_DIR = APP_DIR  # project root directory (first definition)
 sys.path.append(str(ROOT_DIR))
 
 USER_DATA_DIR.mkdir(exist_ok=True)
@@ -76,12 +67,15 @@ SESSION_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Intelliview Coach")
 
-# static / templates
+# static / templates (first mount)
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
+
 timestamp = datetime.now(timezone.utc).isoformat()
 now = datetime.utcnow().isoformat() + "Z"
 
+
+# Save job profiles JSON to user_data (local override of imported name)
 def save_job_profiles(profiles: list[dict]) -> None:
     JOB_PROFILES_PATH.parent.mkdir(parents=True, exist_ok=True)
     JOB_PROFILES_PATH.write_text(
@@ -89,8 +83,9 @@ def save_job_profiles(profiles: list[dict]) -> None:
         encoding="utf-8",
     )
 
+
 # =========================
-# 路徑設定（以下保留你原本的寫法，實際上 ROOT_DIR / USER_DATA_DIR 跟前面一致）
+# Path configuration (second definition of dirs, used by the rest of the file)
 # =========================
 APP_DIR = Path(__file__).resolve().parent
 ROOT_DIR = APP_DIR.parent
@@ -98,7 +93,7 @@ USER_DATA_DIR = ROOT_DIR / "user_data"
 USER_DATA_DIR.mkdir(exist_ok=True)
 JOB_PROFILES_PATH = USER_DATA_DIR / "job_profiles.json"
 
-# 錄音／錄影會存到這裡：user_data/session_media/<profile_id>/xxx.webm
+# Audio / video will be stored here: user_data/session_media/<profile_id>/xxx.webm
 SESSION_MEDIA_DIR = USER_DATA_DIR / "session_media"
 SESSION_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -106,23 +101,25 @@ sys.path.append(str(ROOT_DIR))
 
 app = FastAPI(title="Intelliview Coach")
 
-# static 檔案（CSS, JS）
+# Static files (CSS, JS)
 static_dir = APP_DIR / "static"
 static_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# 🔥 新增：media 檔案（audio/video）
+# Media files (audio/video)
 app.mount("/media", StaticFiles(directory=str(SESSION_MEDIA_DIR)), name="media")
 
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
 
+# Ensure raw/parsed directories exist for a given project_id
 def ensure_project_dirs(project_id: str):
     raw_dir = USER_DATA_DIR / "raw" / project_id
     parsed_dir = USER_DATA_DIR / "parsed" / project_id
     raw_dir.mkdir(parents=True, exist_ok=True)
     parsed_dir.mkdir(parents=True, exist_ok=True)
     return raw_dir, parsed_dir
+
 
 class JobProfileCreate(BaseModel):
     profile_id: str
@@ -131,30 +128,35 @@ class JobProfileCreate(BaseModel):
     jd_text: str
     resume_id: str
 
+
 # =========================
-# FrontEnd Page
+# Frontend pages
 # =========================
-# 首頁：Landing page
+
+# Home page: landing page of the app
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 
-# 履歷設定頁：原本的 editor 搬到這裡
+
+# Resume editor page
 @app.get("/resume", response_class=HTMLResponse, name="resume_page")
 async def resume_page(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
+# Profiles list page, including basic practice stats
 @app.get("/profiles", response_class=HTMLResponse, name="profiles_page")
 async def profiles_page(request: Request):
     profiles = load_job_profiles()
-    # 簡單按照 updated_at 排序（新到舊）
+    # Sort profiles by updated_at (newest first)
     profiles_sorted = sorted(
         profiles,
         key=lambda p: p.get("updated_at", ""),
         reverse=True,
     )
 
-    # 為每個 profile 算一次 stats 摘要
+    # Attach stats summary for each profile
     enriched = []
     for p in profiles_sorted:
         pid = p.get("profile_id")
@@ -170,16 +172,18 @@ async def profiles_page(request: Request):
         "profiles.html",
         {
             "request": request,
-            "profiles": enriched,   # ⭐ 用 enriched，而不是 profiles_sorted
+            "profiles": enriched,
         },
     )
 
+
+# Page to create a new profile, listing available resume versions
 @app.get("/profiles/new", response_class=HTMLResponse, name="new_profile_page")
 async def new_profile_page(
     request: Request,
     resume_id: str | None = None,
 ):
-    # 掃描已有的 resume 版本（parsed 底下的資料夾名）
+    # Scan parsed/ for existing resume versions (folder names)
     parsed_root = USER_DATA_DIR / "parsed"
     resume_ids: list[str] = []
     if parsed_root.exists():
@@ -198,6 +202,7 @@ async def new_profile_page(
     )
 
 
+# API: get a single profile's details
 @app.get("/api/profile/{profile_id}")
 async def api_get_profile(profile_id: str):
     profiles = load_job_profiles()
@@ -212,19 +217,23 @@ async def api_get_profile(profile_id: str):
         "jd_text": p.get("jd_text", ""),
     }
 
+
+# Load all profiles from user_data/job_profiles.json
 def load_all_profiles():
     with open("user_data/job_profiles.json", "r") as f:
         data = json.load(f)
-    # 只拿內層的 list
+    # Only take the inner list of profiles
     return data.get("profiles", [])
 
+
+# Practice history page for a given profile
 @app.get("/profiles/{profile_id}/history", response_class=HTMLResponse)
 async def practice_history_page(request: Request, profile_id: str):
     stats = get_practice_stats(profile_id)
     session = load_session(profile_id)
     turns = session.get("turns", [])
 
-    all_profiles = load_all_profiles()  # ⭐ 新增這行
+    all_profiles = load_all_profiles()
 
     return templates.TemplateResponse(
         "history.html",
@@ -233,11 +242,12 @@ async def practice_history_page(request: Request, profile_id: str):
             "profile_id": profile_id,
             "stats": stats,
             "turns": turns,
-            "all_profiles": all_profiles,   # ⭐ 傳給 template
+            "all_profiles": all_profiles,
         },
     )
 
 
+# Practice page for a given profile
 @app.get("/practice/{profile_id}", response_class=HTMLResponse, name="practice_page")
 async def practice_page(request: Request, profile_id: str):
     return templates.TemplateResponse(
@@ -245,6 +255,8 @@ async def practice_page(request: Request, profile_id: str):
         {"request": request, "profile_id": profile_id},
     )
 
+
+# API: list resume entries for a given profile
 @app.get("/api/profile_entries/{profile_id}")
 async def api_profile_entries(profile_id: str):
     profiles = load_job_profiles()
@@ -274,24 +286,30 @@ async def api_profile_entries(profile_id: str):
 
     return {"entries": items}
 
+
+# API: get summary practice stats for a profile
 @app.get("/api/practice_stats/{profile_id}")
 async def api_practice_stats(profile_id: str):
     stats = get_practice_stats(profile_id)
     return stats
 
+
+# API: get practice history turns for a profile
 @app.get("/api/practice_history/{profile_id}")
 async def api_practice_history(profile_id: str):
     session = load_session(profile_id)
     turns = session.get("turns", [])
-    # 你也可以在這裡做簡單排序或截斷
+    # You can optionally sort or truncate here if needed
     return {"turns": turns}
 
+
+# Mock settings page for configuring mock interview session
 @app.get("/mock_settings", response_class=HTMLResponse, name="mock_settings_page")
 async def mock_settings_page(
     request: Request,
     resume_id: str | None = None,
 ):
-    # 掃描 parsed/ 底下所有 resume version
+    # Scan parsed/ for available resume versions
     parsed_root = USER_DATA_DIR / "parsed"
     resume_ids: list[str] = []
     if parsed_root.exists():
@@ -300,7 +318,7 @@ async def mock_settings_page(
                 resume_ids.append(folder.name)
     resume_ids.sort()
 
-    all_profiles = load_job_profiles()  # 讓 dropdown 有 profile 列表
+    all_profiles = load_job_profiles()  # For dropdown list of profiles
 
     return templates.TemplateResponse(
         "mock_settings.html",
@@ -312,6 +330,8 @@ async def mock_settings_page(
         },
     )
 
+
+# Mock interview page: creates mock session and passes session_config to frontend
 @app.get("/mock_interview")
 async def mock_interview_page(request: Request):
     q = request.query_params
@@ -342,7 +362,7 @@ async def mock_interview_page(request: Request):
     num_questions_int = int(num_questions) if num_questions else None
     time_limit_int = int(time_limit) if time_limit else None
 
-    # ====== 這是從 settings.html 來的 interviewer 設定 ======
+    # Interviewer settings from mock_settings.html
     interviewer_gender = q.get("interviewer_gender", "auto")
 
     role_preset = q.get("interviewer_role") or "senior_engineer"
@@ -353,11 +373,10 @@ async def mock_interview_page(request: Request):
 
     extra_notes = (q.get("interviewer_extra_notes") or "").strip()
 
-    # 可以簡單 resolve（你如果有自己的 resolver 也可以用自己的）
+    # Map preset role to description
     def resolve_role(preset: str, custom: str) -> str:
         if preset == "custom":
             return custom or "an interviewer for this role"
-        # 可以自己 map；這裡先簡單寫
         mapping = {
             "senior_engineer": "a senior data / ML / SWE engineer on the team you’d work with",
             "hiring_manager": "the hiring manager who cares about team fit, ownership, and impact",
@@ -367,6 +386,7 @@ async def mock_interview_page(request: Request):
         }
         return mapping.get(preset, "an interviewer for this role")
 
+    # Map preset style to description
     def resolve_style(preset: str, custom: str) -> str:
         if preset == "custom":
             return custom or "balanced, realistic, and professional"
@@ -382,13 +402,13 @@ async def mock_interview_page(request: Request):
     resolved_role = resolve_role(role_preset, role_custom)
     resolved_style = resolve_style(style_preset, style_custom)
 
-    # ⭐ 這個 persona string 會丟到 TTS 的 req.instructions
+    # Persona string that will be sent to TTS instructions
     tts_persona = (
         f"{resolved_role}. {resolved_style}. "
         f"{extra_notes}" if extra_notes else f"{resolved_role}. {resolved_style}."
     )
 
-    # 組成 interviewer_profile 丟進 session
+    # Build interviewer_profile and store in session
     interviewer_profile = {
         "gender": interviewer_gender,
         "role_preset": role_preset,
@@ -396,11 +416,11 @@ async def mock_interview_page(request: Request):
         "style_preset": style_preset,
         "style_resolved": resolved_style,
         "extra_notes": extra_notes,
-        # 這個欄位會最後變成 TTS 的 instructions → persona_to_instructions()
+        # This field will be used to construct TTS instructions
         "tts_persona": tts_persona,
     }
 
-    # ====== 建立 session：這裡要記得傳 interviewer_profile=... ======
+    # Create mock session with interviewer_profile
     session = mock_interview.create_mock_session(
         profile_id=profile_id,
         resume_id=resume_id,
@@ -409,10 +429,10 @@ async def mock_interview_page(request: Request):
         hint_level=hint_level,
         num_questions=num_questions_int,
         time_limit=time_limit_int,
-        interviewer_profile=interviewer_profile,   # 👈 關鍵
+        interviewer_profile=interviewer_profile,
     )
 
-    # 前端要用 `SESSION_CONFIG` 來 call /api/tts_question
+    # Frontend will use SESSION_CONFIG to call /api/tts_question
     session_config = {
         "session_id": session["session_id"],
         "profile_id": profile_id,
@@ -422,8 +442,7 @@ async def mock_interview_page(request: Request):
         "hint_level": hint_level,
         "num_questions": session.get("num_questions"),
         "time_limit": session.get("time_limit"),
-
-        # 讓 JS 可以拿來當 voice / instructions
+        # For JS to set voice / instructions
         "interviewer_gender": interviewer_gender,
         "interviewer_role": resolved_role,
         "interviewer_style": resolved_style,
@@ -443,12 +462,11 @@ async def mock_interview_page(request: Request):
     )
 
 
-
-
+# Mock history index page for a profile
 @app.get("/profiles/{profile_id}/mock_history")
 async def mock_history_index(request: Request, profile_id: str):
     sessions = mock_interview.list_mock_sessions_for_profile(profile_id)
-    all_profiles = load_all_profiles()  # 跟 practice history 一樣，右上用來切 profile
+    all_profiles = load_all_profiles()  # Same as practice history: used for profile switcher
 
     return templates.TemplateResponse(
         "mock_history.html",
@@ -462,12 +480,14 @@ async def mock_history_index(request: Request, profile_id: str):
 
 
 # ================================
-#  Single mock result page
+# Single mock result pages
 # ================================
+
+# Mock report page for a single session (generic)
 @app.get("/mock/{session_id}")
 def mock_report_page(request: Request, session_id: str):
     """
-    顯示單一 mock interview 的報告頁
+    Display a single mock interview report.
     """
     report = mock_interview.load_mock_result(session_id)
     return templates.TemplateResponse(
@@ -479,6 +499,7 @@ def mock_report_page(request: Request, session_id: str):
     )
 
 
+# Mock report page scoped under a given profile
 @app.get("/profiles/{profile_id}/mock_history/{session_id}")
 async def mock_report_page_profile(request: Request, profile_id: str, session_id: str):
     report = mock_interview.load_mock_result(session_id)
@@ -487,33 +508,36 @@ async def mock_report_page_profile(request: Request, profile_id: str, session_id
         {"request": request, "profile_id": profile_id, "report": report},
     )
 
+
 # =========================
-# API：上傳履歷並 parse
+# API: upload resume and parse
 # =========================
+
+# Upload PDF resume and parse into entries/metadata/education
 @app.post("/api/upload_resume")
 async def upload_resume(
     project_id: str = Form(...),
     file: UploadFile = File(...)
 ):
-    # 準備目錄
+    # Prepare directories
     raw_dir = USER_DATA_DIR / "raw" / project_id
     parsed_dir = USER_DATA_DIR / "parsed" / project_id
     raw_dir.mkdir(parents=True, exist_ok=True)
     parsed_dir.mkdir(parents=True, exist_ok=True)
 
-    # 永遠存成 resume.pdf
+    # Always save as resume.pdf
     resume_path = raw_dir / "resume.pdf"
     content = await file.read()
     with open(resume_path, "wb") as f:
         f.write(content)
 
-    # 用你自己的 parser
+    # Parse using your own PDF parser
     raw_text = extract_pdf_text(str(resume_path))
     entries = parse_resume_entries(raw_text)
     metadata = extract_metadata_sections(raw_text)
     education_structured = extract_structured_education(raw_text)
 
-    # 存原始 parse 結果（之後 Save 才會存 edited 版）
+    # Save raw parse results (edited version will be saved later)
     with open(parsed_dir / "experience_entries.json", "w", encoding="utf-8") as f:
         json.dump(entries, f, ensure_ascii=False, indent=2)
     with open(parsed_dir / "metadata.json", "w", encoding="utf-8") as f:
@@ -532,8 +556,9 @@ async def upload_resume(
 
 
 # =========================
-# API：存編輯後的結果
+# API: save edited resume result
 # =========================
+
 class SaveResumePayload(BaseModel):
     project_id: str
     entries: list[dict]
@@ -541,13 +566,14 @@ class SaveResumePayload(BaseModel):
     education_structured: list[dict]
 
 
+# Save edited resume and rebuild embeddings
 @app.post("/api/save_resume")
 async def save_resume(payload: SaveResumePayload):
     project_id = payload.project_id
     parsed_dir = USER_DATA_DIR / "parsed" / project_id
     parsed_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1) 存 edited 版本
+    # 1) Save edited version
     with open(parsed_dir / "experience_entries_edited.json", "w", encoding="utf-8") as f:
         json.dump(payload.entries, f, ensure_ascii=False, indent=2)
 
@@ -557,17 +583,17 @@ async def save_resume(payload: SaveResumePayload):
     with open(parsed_dir / "education_structured.json", "w", encoding="utf-8") as f:
         json.dump(payload.education_structured, f, ensure_ascii=False, indent=2)
 
-    # 2) 用 fine-tuned model 建 embeddings
+    # 2) Build embeddings with fine-tuned model
     #    → user_data/embeddings/{project_id}/resume_bullets.npy
     try:
         build_resume_embeddings(project_id)
         built = True
     except Exception as e:
-        # 不要讓整個 API 爆掉，return 讓前端知道 embedding 失敗
+        # Do not crash the API; just return a flag
         print("Error building embeddings:", e)
         built = False
 
-    # 3) 回傳給前端
+    # 3) Return status to frontend
     return JSONResponse(
         content={
             "status": "ok",
@@ -576,13 +602,15 @@ async def save_resume(payload: SaveResumePayload):
         }
     )
 
+
+# Create or update a job profile (linking JD and resume)
 @app.post("/api/create_job_profile")
 async def create_job_profile(payload: JobProfileCreate):
     profiles = load_job_profiles()
 
     now = datetime.utcnow().isoformat() + "Z"
 
-    # 如果同一個 profile_id 已存在，就更新
+    # If profile_id already exists, update it
     existing = None
     for p in profiles:
         if p.get("profile_id") == payload.profile_id:
@@ -617,14 +645,17 @@ async def create_job_profile(payload: JobProfileCreate):
         content={"status": "ok", "profile_id": payload.profile_id},
     )
 
+
 class NextQuestionRequest(BaseModel):
     profile_id: str
-    mode: str                    # "auto" | "behavioral" | "project" | "technical" | "case" | "custom"
+    mode: str  # "auto" | "behavioral" | "project" | "technical" | "case" | "custom"
     behavioral_type: Optional[str] = None
     entry_key: Optional[str] = None
     prev_answer: Optional[str] = None
     custom_question: Optional[str] = None
 
+
+# API: get the next practice question for a profile (multiple modes)
 @app.post("/api/next_question")
 async def api_next_question(req: NextQuestionRequest):
     profiles = load_job_profiles()
@@ -635,7 +666,7 @@ async def api_next_question(req: NextQuestionRequest):
     jd_text = profile.get("jd_text", "")
     mode = (req.mode or "auto").lower()
 
-    # === auto: LLM + JD + 避免重複 ===
+    # === auto: JD-based question, avoid duplicates ===
     if mode == "auto":
         asked = get_asked_questions(req.profile_id, mode="auto")
         question = call_llm_for_question(jd_text, mode="auto", avoid=asked)
@@ -645,7 +676,7 @@ async def api_next_question(req: NextQuestionRequest):
         behavioral_type = None
         entry_key = None
 
-    # === behavioral: 題庫 + subtype + 避免重複 ===
+    # === behavioral: from question bank + subtype + avoid duplicates ===
     elif mode == "behavioral":
         subtype = req.behavioral_type or "random"
         question = get_behavioral_question(req.profile_id, subtype)
@@ -666,7 +697,7 @@ async def api_next_question(req: NextQuestionRequest):
 
         entry_bullets = get_bullets_for_entry(resume_id, entry_key)
 
-        # 建 previous_qas（session 內所有這個 entry 的 Q/A）
+        # Build previous QAs for this entry from session
         session = load_session(req.profile_id)
         qa_history = []
         for t in session.get("turns", []):
@@ -678,7 +709,7 @@ async def api_next_question(req: NextQuestionRequest):
                     }
                 )
 
-        # 把這一輪使用者剛打的答案（prev_answer）也串進 context
+        # Append the latest answer (prev_answer) to context if available
         last_question = qa_history[-1]["question"] if qa_history else None
         if req.prev_answer and last_question:
             qa_history.append({"question": last_question, "answer": req.prev_answer})
@@ -693,7 +724,7 @@ async def api_next_question(req: NextQuestionRequest):
         tag = "Project deep dive"
         behavioral_type = None
 
-    # === technical: 用 JD 生技術題 ===
+    # === technical: JD-based technical question ===
     elif mode == "technical":
         asked = get_asked_questions(req.profile_id, mode="technical")
         question = call_llm_for_question(
@@ -706,7 +737,7 @@ async def api_next_question(req: NextQuestionRequest):
         behavioral_type = None
         entry_key = None
 
-    # === case: 用 JD 生 case reasoning 題 ===
+    # === case: JD-based case reasoning question ===
     elif mode == "case":
         asked = get_asked_questions(req.profile_id, mode="case")
         question = call_llm_for_question(
@@ -719,7 +750,7 @@ async def api_next_question(req: NextQuestionRequest):
         behavioral_type = None
         entry_key = None
 
-    # === custom: 前端自訂題目 ===
+    # === custom: custom question from frontend ===
     elif mode == "custom":
         if not req.custom_question:
             raise HTTPException(status_code=400, detail="custom_question is required for custom mode")
@@ -742,14 +773,18 @@ async def api_next_question(req: NextQuestionRequest):
         "entry_key": entry_key,
     }
 
+
 class BulletsRequest(BaseModel):
     profile_id: str
     question: str
 
+
+# API: retrieve top bullets for a given question (RAG only)
 @app.post("/api/retrieve_bullets")
 async def api_retrieve_bullets(req: BulletsRequest):
     bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=3)
     return {"bullets": bullets}
+
 
 class CoachChatRequest(BaseModel):
     profile_id: str
@@ -758,16 +793,18 @@ class CoachChatRequest(BaseModel):
     user_message: str
     sample_answer: Optional[str] = None
     bullets: Optional[List[Dict[str, Any]]] = None
-    history: Optional[List[Dict[str, str]]] = None   # [{role, content}, ...]
+    history: Optional[List[Dict[str, str]]] = None  # [{role, content}, ...]
 
+
+# API: interview coach chat for a single question
 @app.post("/api/coach_chat")
 async def api_coach_chat(req: CoachChatRequest):
     """
     Coach chat:
-    - 一定會有當前 question
-    - sample_answer 可以為空（代表還沒 generate）
-    - bullets 如果沒傳，就自己 RAG 撈 top-k
-    - history 用來保留此輪 coach 對話記憶
+    - Always has a current question
+    - sample_answer may be empty (not generated yet)
+    - bullets may be omitted (server will perform RAG)
+    - history is used to keep multiple coach chat turns
     """
     profiles = load_job_profiles()
     profile = next((p for p in profiles if p.get("profile_id") == req.profile_id), None)
@@ -776,13 +813,13 @@ async def api_coach_chat(req: CoachChatRequest):
 
     jd_text = profile.get("jd_text", "")
 
-    # 若前端沒傳 bullets，自己 RAG 一份
+    # If frontend did not send bullets, perform RAG lookup
     if req.bullets:
         bullets = req.bullets
     else:
         bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=5)
 
-    # 準備 bullet context
+    # Build bullet context block
     bullet_lines = []
     for b in bullets:
         entry = b.get("entry") or "Unknown entry"
@@ -790,13 +827,14 @@ async def api_coach_chat(req: CoachChatRequest):
         bullet_lines.append(f"- [{entry}] {text}")
     bullet_block = "\n".join(bullet_lines) if bullet_lines else "(none)"
 
-    # 對話歷史（只拿最後幾輪）
+    # Keep only the last few turns of history
     history = req.history or []
-    trimmed_history = history[-8:]  # 最多 8 則
+    trimmed_history = history[-8:]  # max 8 turns
 
-    # system + user prompt
+    # System + context prompt
     system_msg = (
-        "You are an interview coach helping a candidate refine their answer, do not give user the sample answer unless they ask for it. "
+        "You are an interview coach helping a candidate refine their answer, "
+        "do not give the user the sample answer unless they ask for it. "
         "Use the job description, question, resume bullets, and (if available) "
         "the current sample answer. Be concrete and actionable."
     )
@@ -818,7 +856,7 @@ Current sample answer (may be empty if not generated yet):
     messages = [{"role": "system", "content": system_msg}]
     messages.append({"role": "user", "content": context_block})
 
-    # 加入歷史
+    # Add preserved history
     for m in trimmed_history:
         role = m.get("role", "user")
         content = m.get("content", "")
@@ -826,10 +864,10 @@ Current sample answer (may be empty if not generated yet):
             continue
         messages.append({"role": role, "content": content})
 
-    # 最後這一輪使用者的訊息
+    # Append the latest user message
     messages.append({"role": "user", "content": req.user_message})
 
-    from core.rag_pipeline import client as rag_client  # 避免名稱衝突
+    from core.rag_pipeline import client as rag_client  # avoid name conflict
 
     resp = rag_client.chat.completions.create(
         model="gpt-4o-mini",
@@ -840,7 +878,7 @@ Current sample answer (may be empty if not generated yet):
 
     return {
         "reply": reply,
-        "bullets": bullets,  # 讓前端若要的話可以更新 sidebar
+        "bullets": bullets,  # frontend can update sidebar if needed
     }
 
 
@@ -853,6 +891,8 @@ class SampleAnswerRequest(BaseModel):
     user_answer: Optional[str] = None
     bullets: Optional[List[Dict[str, Any]]] = None
 
+
+# API: generate sample answer for a given question
 @app.post("/api/generate_sample_answer")
 async def api_generate_sample_answer(req: SampleAnswerRequest):
     profiles = load_job_profiles()
@@ -862,7 +902,7 @@ async def api_generate_sample_answer(req: SampleAnswerRequest):
 
     jd_text = profile.get("jd_text", "")
 
-    # 若前端沒傳 bullets，就讓後端自己 RAG 找
+    # If bullets not provided, perform RAG lookup
     if req.bullets:
         bullets = req.bullets
     else:
@@ -892,9 +932,11 @@ class SaveUserAnswerRequest(BaseModel):
     user_answer: Optional[str] = None
     bullets: Optional[List[Dict[str, Any]]] = None
     sample_answer: Optional[str] = None
-    thread_id: Optional[str] = None     
-    is_followup: bool = False  
+    thread_id: Optional[str] = None
+    is_followup: bool = False
 
+
+# API: save a text-based user answer and evaluate it
 @app.post("/api/save_user_answer")
 async def api_save_user_answer(req: SaveUserAnswerRequest):
     profiles = load_job_profiles()
@@ -907,13 +949,13 @@ async def api_save_user_answer(req: SaveUserAnswerRequest):
     if not req.user_answer or not req.user_answer.strip():
         raise HTTPException(status_code=400, detail="user_answer is empty")
 
-    # bullets: 前端有勾選就用它；沒有就自己 RAG
+    # Use bullets from frontend if provided; otherwise perform RAG
     if req.bullets:
         bullets = req.bullets
     else:
         bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=5)
 
-    # 評分
+    # Evaluate the answer
     eval_result = evaluate_answer(
         question=req.question,
         jd_text=jd_text,
@@ -921,21 +963,19 @@ async def api_save_user_answer(req: SaveUserAnswerRequest):
         user_answer=req.user_answer,
     )
 
-    # ---- 兼容舊欄位的 mapping ----
-    # 新版 evaluate_answer 用 overall_score / improvements_overview
+    # Backward compatible mapping
     score = eval_result.get("overall_score")
     if score is None:
         score = eval_result.get("score", 5)
 
     strengths = (eval_result.get("strengths") or "").strip()
-
     improvements = (
         eval_result.get("improvements_overview")
         or eval_result.get("improvements")
         or ""
     ).strip()
 
-    # 寫入 session，只在這一步才 log
+    # Write into session
     log_practice_turn(
         profile_id=req.profile_id,
         question=req.question,
@@ -952,32 +992,35 @@ async def api_save_user_answer(req: SaveUserAnswerRequest):
         is_followup=req.is_followup,
     )
 
-    # 回給前端的 eval_result 保留完整新版結構
-    #（如果前端有寫死用 score / improvements，也可以順手補上）
+    # Return eval_result with legacy keys for safety
     eval_result_out = dict(eval_result)
     eval_result_out.setdefault("score", score)
     eval_result_out.setdefault("improvements", improvements)
 
     return eval_result_out
 
+
 class FollowupQuestionRequest(BaseModel):
     profile_id: str
-    mode: str                     # "auto" | "behavioral" | "project" | "custom"
-    base_question: str            # 主題目的問題（第一題）
-    user_answer: Optional[str] = None  # 剛剛這題的最新回答（尚未存檔也可以）
-    thread_id: Optional[str] = None    # 如果前端有 thread_id（UUID），就傳；沒有就用 base_question 當預設
+    mode: str  # "auto" | "behavioral" | "project" | "custom"
+    base_question: str  # main question for this thread
+    user_answer: Optional[str] = None  # latest answer to base_question
+    thread_id: Optional[str] = None
     entry_key: Optional[str] = None
     bullets: Optional[List[Dict[str, Any]]] = None
 
-MAX_FOLLOWUPS_PER_THREAD = 3  # 你可以之後調整這個數字
 
+MAX_FOLLOWUPS_PER_THREAD = 3  # max follow-up questions per thread
+
+
+# API: generate a follow-up question for a given main question
 @app.post("/api/followup_question")
 async def api_followup_question(req: FollowupQuestionRequest):
     """
-    產生追問問題：
-    - 適用所有 mode（auto/behavioral/project/custom）
-    - 根據 base_question + 該 thread 的 QA 歷史 + 最新 user_answer 來問
-    - 同一個 thread 內避免問重複的問題
+    Generate a follow-up question:
+    - Works for all modes (auto/behavioral/project/custom)
+    - Uses base_question + QA history + latest user_answer
+    - Avoids repeating previous questions in the same thread
     """
     profiles = load_job_profiles()
     profile = next((p for p in profiles if p.get("profile_id") == req.profile_id), None)
@@ -987,22 +1030,22 @@ async def api_followup_question(req: FollowupQuestionRequest):
     jd_text = profile.get("jd_text", "")
     mode = (req.mode or "auto").lower()
 
-    # 1) bullets：沒給就自己 RAG
+    # 1) bullets: use provided ones or perform RAG
     if req.bullets:
         bullets = req.bullets
     else:
         bullets = retrieve_bullets_for_profile(req.profile_id, req.base_question, top_k=5)
 
-    # 2) 找出這個 thread 底下的既有 QA（已存進 turns 的）
+    # 2) get this thread's existing turns from session
     session = load_session(req.profile_id)
-    thread_id = req.thread_id or req.base_question  # 簡單版：沒 thread_id 就用主題目當 ID
+    thread_id = req.thread_id or req.base_question  # fallback to base_question as id
 
     thread_turns = [
         t for t in session.get("turns", [])
         if t.get("thread_id") == thread_id
     ]
 
-    # 計算已經追問幾題
+    # Count how many followups are already in this thread
     followup_count = sum(1 for t in thread_turns if t.get("is_followup"))
     if followup_count >= MAX_FOLLOWUPS_PER_THREAD:
         return {
@@ -1012,7 +1055,7 @@ async def api_followup_question(req: FollowupQuestionRequest):
             "thread_id": thread_id,
         }
 
-    # 3) 組 QA history（只給 LLM 看，不一定全部要顯示在 UI）
+    # 3) build QA history for the LLM
     qa_history = []
     for t in thread_turns:
         q = t.get("question") or ""
@@ -1020,11 +1063,11 @@ async def api_followup_question(req: FollowupQuestionRequest):
         if q or a:
             qa_history.append({"question": q, "answer": a})
 
-    # 把這一輪剛輸入的 user_answer 也加進去（即使還沒存檔）
+    # Append latest user answer even if not stored yet
     if req.user_answer:
         qa_history.append({"question": req.base_question, "answer": req.user_answer})
 
-    # 4) thread 內避免重複的問題（主題 + 既有追問）
+    # 4) avoid repeated questions within this thread
     avoid = set()
     for t in thread_turns:
         q = t.get("question")
@@ -1032,7 +1075,7 @@ async def api_followup_question(req: FollowupQuestionRequest):
             avoid.add(q.strip())
     avoid.add(req.base_question.strip())
 
-    # 5) 實際叫 LLM 生追問問題（含避免重複）
+    # 5) call LLM to generate follow-up question
     followup_q = generate_followup_question(
         jd_text=jd_text,
         mode=mode,
@@ -1043,7 +1086,7 @@ async def api_followup_question(req: FollowupQuestionRequest):
     )
 
     if not followup_q:
-        # 代表 LLM 怎麼樣都生不出足夠不同的新問題
+        # Model could not generate a sufficiently different follow-up
         return {
             "question": None,
             "done": True,
@@ -1059,32 +1102,34 @@ async def api_followup_question(req: FollowupQuestionRequest):
         "thread_id": thread_id,
         "is_followup": True,
         "done": False,
-        "tag": f"Follow-up \u00b7 {mode}",
+        "tag": f"Follow-up · {mode}",
     }
 
+
+# API: save user answer along with audio/video media, with transcription fallback
 @app.post("/api/save_user_answer_with_media")
 async def api_save_user_answer_with_media(
     meta: str = Form(...),
     media: UploadFile | None = File(None),
 ):
     """
-    前端會用 FormData 傳：
-      - meta: JSON 字串，內容跟 SaveUserAnswerRequest 一樣（沒有 user_answer 也可以）
-      - media: 錄音/錄影檔 (optional)
+    Frontend sends FormData:
+      - meta: JSON string, same shape as SaveUserAnswerRequest (user_answer may be empty)
+      - media: audio/video file (optional)
 
-    流程：
-      1. 先把 media 存到 user_data/session_media/<profile_id>/xxx.webm
-      2. 如果 meta 裡沒有 user_answer 且有 media → 用 Whisper-1 轉錄成文字
-      3. 把轉錄文字填進 req.user_answer → 走原本評分 & log pipeline
-      4. 回傳評分結果（另外多帶 transcript，前端之後可以用來顯示）
+    Flow:
+      1. Save media to user_data/session_media/<profile_id>/xxx.webm
+      2. If meta has no user_answer but has media → transcribe with Whisper-1
+      3. Fill transcript into req.user_answer → run original evaluation + logging
+      4. Return evaluation result (plus transcript for frontend display)
     """
-    # ----- 解析 meta -----
+    # ----- parse meta -----
     try:
         meta_dict = json.loads(meta)
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid meta JSON")
 
-    # 用既有的 Pydantic model 做驗證
+    # Validate with existing Pydantic model
     req = SaveUserAnswerRequest(**meta_dict)
 
     profiles = load_job_profiles()
@@ -1094,21 +1139,20 @@ async def api_save_user_answer_with_media(
 
     jd_text = profile.get("jd_text", "")
 
-    # ----- 判斷是否有文字 / media -----
+    # ----- check if we have text and/or media -----
     has_text = bool(req.user_answer and req.user_answer.strip())
     has_media_upload = media is not None
 
-    # 如果兩個都沒有，直接擋掉
     if not has_text and not has_media_upload:
         raise HTTPException(status_code=400, detail="No text answer or media provided")
 
-    # ---------- 處理 media 檔案：存到 SESSION_MEDIA_DIR ----------
+    # ---------- handle media file: save to SESSION_MEDIA_DIR ----------
     media_type: Optional[str] = None
     media_filename: Optional[str] = None
     media_duration_ms: Optional[int] = None
     saved_media_path: Optional[Path] = None
 
-    # meta 裡可以帶一個 media_meta: {type, durationMs}
+    # meta may include media_meta: {type, durationMs}
     media_meta = meta_dict.get("media_meta") or {}
     if media_meta:
         media_type = media_meta.get("type")
@@ -1134,23 +1178,22 @@ async def api_save_user_answer_with_media(
         content = await media.read()
         media_path.write_bytes(content)
 
-        # 存在 session.json 裡面的路徑：相對於 SESSION_MEDIA_DIR
+        # Store relative path to SESSION_MEDIA_DIR in session.json
         media_filename = str(media_path.relative_to(SESSION_MEDIA_DIR))
         saved_media_path = media_path
 
-        # 如果前端沒傳 media_type，就從 content_type 猜
+        # If media_type not given, infer from content_type
         if media_type is None:
             if "video" in content_type:
                 media_type = "video"
             elif "audio" in content_type:
                 media_type = "audio"
 
-    # ---------- 如果沒有文字但有 media → 做轉錄 ----------
+    # ---------- transcription if no text but media exists ----------
     transcript_text: Optional[str] = None
 
     if (not has_text) and saved_media_path is not None:
         try:
-            # 你之後可以依照 profile / user 習慣調整 language
             transcript_text = transcribe_media(
                 saved_media_path,
                 language="en",
@@ -1162,15 +1205,15 @@ async def api_save_user_answer_with_media(
 
         if transcript_text and transcript_text.strip():
             req.user_answer = transcript_text.strip()
-            has_text = True  # 之後可以進入原本的評分流程
+            has_text = True
 
-    # ---------- bullets：跟原本一樣 ----------
+    # ---------- bullets: same as text-only endpoint ----------
     if req.bullets:
         bullets = req.bullets
     else:
         bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=5)
 
-    # ---------- 評分邏輯：只要最後有文字就評分 ----------
+    # ---------- evaluation: only if we have final text ----------
     if has_text:
         eval_result = evaluate_answer(
             question=req.question,
@@ -1182,7 +1225,7 @@ async def api_save_user_answer_with_media(
         strengths = eval_result["strengths"]
         improvements = eval_result["improvements"]
     else:
-        # 到這一步還是沒有文字（例如轉錄失敗）→ 不評分，只紀錄
+        # No text even after transcription; record only
         score = None
         strengths = ""
         improvements = ""
@@ -1192,11 +1235,11 @@ async def api_save_user_answer_with_media(
             "improvements": improvements,
         }
 
-    # 如果有轉錄文字，就順便回傳給前端（之後你可以用在 practice 頁面顯示）
+    # Attach transcript to result if available
     if transcript_text:
         eval_result["transcript"] = transcript_text
 
-    # ---------- 寫入 session ----------
+    # ---------- write into session ----------
     log_practice_turn(
         profile_id=req.profile_id,
         question=req.question,
@@ -1205,7 +1248,7 @@ async def api_save_user_answer_with_media(
         mode=req.mode,
         behavioral_type=req.behavioral_type,
         entry_key=req.entry_key,
-        user_answer=req.user_answer,   # 這裡可能是：使用者打的 或 轉錄文字
+        user_answer=req.user_answer,  # text typed by user or transcribed text
         score=score,
         strengths=strengths,
         improvements=improvements,
@@ -1218,27 +1261,29 @@ async def api_save_user_answer_with_media(
 
     return eval_result
 
+
 class MockNextQuestionRequest(BaseModel):
     profile_id: str
-    index: int                 # 第幾題（1-based）
+    index: int  # 1-based index
     session_config: Dict[str, Any]
     prev_answer: Optional[str] = None
-    entry_key: Optional[str] = None   # 如果你想強制某題是 project
+    entry_key: Optional[str] = None  # optional project override
 
 
+# API: get the next mock question (time/length mode) and combine reaction + question
 @app.post("/api/mock_next_question")
 async def api_mock_next_question(payload: Dict[str, Any]):
     """
-    body:
+    Body:
     {
       "session_id": "...",
       "index": 0,         # 0-based
-      "seconds_left": 900 # ✅ time mode 的時候才會帶，單位：秒
+      "seconds_left": 900 # time mode only, in seconds
     }
     """
     session_id = payload.get("session_id")
     index_raw = payload.get("index", 0)
-    seconds_left = payload.get("seconds_left")   # ✅ time mode 用
+    seconds_left = payload.get("seconds_left")   # used in time mode
 
     if session_id is None:
         raise HTTPException(status_code=400, detail="session_id is required")
@@ -1249,7 +1294,7 @@ async def api_mock_next_question(payload: Dict[str, Any]):
         raise HTTPException(status_code=400, detail="index must be an integer")
 
     try:
-        # ✅ 把秒數傳給 mock_interview
+        # Pass seconds_left into mock_interview
         q = mock_interview.get_question_for_index(
             session_id,
             index,
@@ -1258,35 +1303,27 @@ async def api_mock_next_question(payload: Dict[str, Any]):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # ---------- 在這裡把 reaction + question 合併 ----------
-    # 假設 mock_interview.get_question_for_index 會回傳類似：
-    # {
-    #   "question": "Can you walk me through ...",
-    #   "tag": "...",
-    #   "reaction": "It's great to hear you're studying at Columbia; ..."
-    #   ...
-    # }
+    # Combine interviewer reaction and question text into one bubble
     reaction_text = (q.get("reaction") or "").strip()
     question_text = (q.get("question") or "").strip()
 
     if reaction_text and question_text:
-        # 兩行，同一個 bubble、同樣字體
-        # 如果你想同一行就改成 f"{reaction_text} {question_text}"
         combined = f"{reaction_text}\n\n{question_text}"
         q["question"] = combined
     elif reaction_text:
-        # 萬一沒有 question（理論上不會），至少不要丟掉 reaction
+        # Fallback if question is missing (should not normally happen)
         q["question"] = reaction_text
 
     return JSONResponse(q)
 
-    
+
+# API: finalize mock session at the end of the interview and generate report
 @app.post("/api/mock_finish")
 async def api_mock_finish(meta: str = Form(...)):
     """
-    End interview 時呼叫：
-      - meta: JSON 字串，至少要有 {session_id}
-    不再需要整段 media，因為每題已經用 /api/mock_answer 存好 transcript。
+    Called when the mock interview ends:
+      - meta: JSON string, must include {session_id}
+    No need to upload all media again because each question was stored via /api/mock_answer.
     """
     import json as _json
 
@@ -1310,23 +1347,25 @@ async def api_mock_finish(meta: str = Form(...)):
         "overall_score": report.get("overall_score"),
     }
 
+
+# API: save a single mock interview answer (audio/video) + transcript + short reaction
 @app.post("/api/mock_answer")
 async def api_mock_answer(
     meta: str = Form(...),
     media: UploadFile = File(...),
 ):
     """
-    一題結束時呼叫：
-      - meta: JSON 字串，至少包含 {session_id, index, question_id, question_text}
-              （如果有使用 realtime transcript，會多帶 realtime_transcript）
-      - media: 這一題的錄音/錄影 (webm)
+    Called at the end of each mock question:
+      - meta: JSON string, must contain {session_id, index, question_id, question_text}
+              (if using realtime transcription, also includes realtime_transcript)
+      - media: recorded audio/video for this question (webm)
 
-    後端：
-      1) 存檔到 user_data/mock/media/<session_id>_<index>.webm
-      2) 優先使用 realtime_transcript；若沒有，再呼叫 transcribe_media
-      3) 產生一句短反應（像面試官會說的話）
-      4) 存進 mock session 的 answers（含 reaction、transcript_source）
-      5) 判斷是否插 follow-up（不算題數）
+    Backend:
+      1) Save file to user_data/mock/media/<session_id>_<index>.webm
+      2) Prefer realtime_transcript; if missing, run batch transcription
+      3) Generate a short interviewer reaction to the answer
+      4) Save into mock session answers (including reaction and transcript_source)
+      5) Optionally insert a follow-up question (not counted in total question count)
     """
     import json
 
@@ -1359,9 +1398,8 @@ async def api_mock_answer(
         shutil.copyfileobj(media.file, f)
 
     # -----------------------------
-    # 2) transcription：優先用 realtime_transcript
+    # 2) transcription: prefer realtime_transcript
     # -----------------------------
-    # 前端如果有串 Realtime，就在 meta 裡帶上 realtime_transcript
     realtime_text = meta_obj.get("realtime_transcript") or ""
     if not isinstance(realtime_text, str):
         realtime_text = ""
@@ -1371,13 +1409,13 @@ async def api_mock_answer(
     transcript_text = ""
 
     if realtime_text:
-        # ✅ 正常情況：用 Realtime API 已經轉好的文字
+        # Normal path: use text from Realtime API
         transcript_text = realtime_text
         transcript_source = "realtime"
-        print('is working')
+        print("Realtime transcript used")
     else:
-        print('RT not working')
-        # 🛟 Fallback：如果沒有 realtime（或失敗），才跑 batch transcribe
+        print("Realtime transcript not available, using batch transcription")
+        # Fallback to batch transcription if realtime not available
         try:
             transcript_text = transcribe_media(
                 media_path,
@@ -1391,7 +1429,7 @@ async def api_mock_answer(
             transcript_source = "error"
 
     # -----------------------------
-    # 3) interviewer reaction（先算好）
+    # 3) interviewer reaction
     # -----------------------------
     try:
         reaction = mock_interview.generate_interviewer_reaction(
@@ -1403,12 +1441,12 @@ async def api_mock_answer(
         reaction = ""
 
     # -----------------------------
-    # 4) write into session.answers（包含 reaction + transcript_source）
+    # 4) write into session.answers
     # -----------------------------
     session = mock_interview.load_mock_session(session_id)
     answers = session.get("answers") or []
 
-    # remove previous record of same index
+    # Remove previous record for same index
     answers = [a for a in answers if a.get("index") != index]
 
     answer_obj = {
@@ -1417,7 +1455,7 @@ async def api_mock_answer(
         "question_text": question_text,
         "transcript": transcript_text or "",
         "reaction": reaction or "",
-        "transcript_source": transcript_source,   # 👈 新增：記錄來源（realtime/batch/error）
+        "transcript_source": transcript_source,  # realtime/batch/error
     }
 
     answers.append(answer_obj)
@@ -1444,6 +1482,8 @@ async def api_mock_answer(
         "transcript_source": transcript_source,
     }
 
+
+# WebSocket: bridge between browser and OpenAI Realtime for transcription
 @app.websocket("/ws/mock_realtime")
 async def ws_mock_realtime(client_ws: WebSocket):
     await client_ws.accept()
@@ -1471,7 +1511,7 @@ async def ws_mock_realtime(client_ws: WebSocket):
         ) as openai_ws:
             print("[ws_mock_realtime] connected to OpenAI Realtime")
 
-            # ✅ 正確的 transcription_session.update：所有設定包在 "session" 裡
+            # Configure transcription session
             await openai_ws.send_json({
                 "type": "transcription_session.update",
                 "session": {
@@ -1494,6 +1534,7 @@ async def ws_mock_realtime(client_ws: WebSocket):
             })
             print("[ws_mock_realtime] sent transcription_session.update")
 
+            # Task: forward messages from client to OpenAI
             async def pump_client_to_openai():
                 try:
                     async for msg in client_ws.iter_text():
@@ -1510,10 +1551,11 @@ async def ws_mock_realtime(client_ws: WebSocket):
                 except Exception as e:
                     print("[ws_mock_realtime] client->openai error:", e)
 
+            # Task: forward messages from OpenAI to client, extracting transcript
             async def pump_openai_to_client():
                 """
-                把 OpenAI 發回來的 event 裡的文字抓出來，送成：
-                  { "type": "transcript", "text": "<全文或目前累積>" }
+                Convert OpenAI transcription events into:
+                  { "type": "transcript", "text": "<current text>" }
                 """
                 current_text = ""
 
@@ -1532,15 +1574,14 @@ async def ws_mock_realtime(client_ws: WebSocket):
                     etype = event.get("type", "")
                     print("[ws_mock_realtime] OpenAI event:", etype)
 
-                    # === 1) 部分文字（有些版本叫 partial，有些叫 delta） ===
+                    # 1) Partial text (partial or delta)
                     if etype in (
                         "conversation.item.input_audio_transcription.partial",
                         "conversation.item.input_audio_transcription.delta",
                     ):
-                        # 目前官方例子是 transcript 或 delta 直接在頂層
                         fragment = (
-                            event.get("delta")      # delta 版本
-                            or event.get("transcript")  # partial 版本
+                            event.get("delta")
+                            or event.get("transcript")
                             or ""
                         )
                         if fragment:
@@ -1551,7 +1592,7 @@ async def ws_mock_realtime(client_ws: WebSocket):
                             }))
                         continue
 
-                    # === 2) 完整一句結束 ===
+                    # 2) Completed text
                     if etype == "conversation.item.input_audio_transcription.completed":
                         final_text = event.get("transcript") or ""
                         if final_text:
@@ -1562,10 +1603,7 @@ async def ws_mock_realtime(client_ws: WebSocket):
                             }))
                         continue
 
-                    # 其他事件（speech_started / committed / conversation.item.created 等）先略過
-                    # 如果要 debug，可以暫時印整個 event 看結構：
-                    # else:
-                    #     print("[ws_mock_realtime] DEBUG EVENT:", json.dumps(event, ensure_ascii=False))
+                    # Other events are ignored for now (can log for debugging)
 
             await asyncio.gather(
                 pump_client_to_openai(),
@@ -1589,6 +1627,8 @@ async def ws_mock_realtime(client_ws: WebSocket):
             pass
         print("[ws_mock_realtime] closed")
 
+
+# API: serve recorded mock media file for preview
 @app.get("/mock_media/{session_id}/{index}")
 async def get_mock_media(session_id: str, index: int):
     path = mock_interview.MOCK_MEDIA_DIR / f"{session_id}_{index}.webm"
@@ -1597,50 +1637,52 @@ async def get_mock_media(session_id: str, index: int):
     return FileResponse(path, media_type="video/webm")
 
 
-# ---------- TTS Request model ----------
+# ---------- TTS request model ----------
 
 class TTSRequest(BaseModel):
     text: str
-    session_id: str    # 用來從 mock session 讀 interviewer_profile
-# ---------- Voice pool ----------
+    session_id: str  # used to look up interviewer_profile from mock session
+
+
+# ---------- Voice pools ----------
 
 VOICE_POOLS = {
     "male": ["onyx", "echo"],
-    # female：只留偏女性的聲音
     "female": ["fable", "shimmer", "nova", "coral"],
-    # neutral：放 alloy + 中性
     "neutral": ["alloy", "sage", "ballad", "ash"],
 }
 
 ALL_VOICES = list({v for lst in VOICE_POOLS.values() for v in lst})
 
 
+# Pick a voice based on selected gender or explicit voice name
 def pick_voice(gender: str | None) -> str:
-    """依照使用者選的 gender 選一個 voice."""
+    """Pick a TTS voice based on user-selected gender or voice name."""
     if not gender or gender == "auto":
         return random.choice(ALL_VOICES)
 
     gender = gender.lower()
 
-    # 如果剛好傳的是某個 voice 名稱，就直接用
+    # If given an exact voice name, use it directly
     if gender in ALL_VOICES:
         return gender
 
-    # 否則當成 gender key
+    # Otherwise treat as gender key
     if gender in VOICE_POOLS:
         return random.choice(VOICE_POOLS[gender])
 
-    # fallback
+    # Fallback
     return "alloy"
 
 
+# Build TTS instructions from interviewer role, style, and extra notes
 def combine_style_and_role_for_tts(
     role_desc: str | None,
     style_desc: str | None,
     extra_notes: str | None = None,
 ) -> str:
     """
-    把 interviewer 的 role + style + extra notes 組成給 TTS 的 instructions。
+    Combine interviewer role + style + extra notes into TTS instructions string.
     """
     parts = []
 
@@ -1661,17 +1703,15 @@ def combine_style_and_role_for_tts(
     return " ".join(parts)
 
 
+# ---------- TTS endpoint ----------
 
-# ---------- API endpoint ----------
-
+# API: turn interviewer text into speech, using persona stored in mock session
 @app.post("/api/tts_question")
 async def tts_question(req: TTSRequest):
     """
-    用 session_id 讀取 mock session 裡的 interviewer_profile，
-    根據 gender / role_resolved / style_resolved / extra_notes 來決定 voice + instructions，
-    然後把 text 變成 mp3 回傳。
-
-    ✅ 聲音只在這個 session 第一次 TTS 時決定，之後全部沿用同一個 voice。
+    Use session_id to read interviewer_profile from the mock session,
+    decide voice + instructions based on gender / role / style / extra notes,
+    then convert text into an mp3 response.
     """
     text = (req.text or "").strip()
     if not text:
@@ -1685,22 +1725,22 @@ async def tts_question(req: TTSRequest):
 
     interviewer_profile = session.get("interviewer_profile") or {}
 
-    gender = interviewer_profile.get("gender")               # "male" / "female" / "auto"
+    gender = interviewer_profile.get("gender")  # "male" / "female" / "auto"
     role_desc = interviewer_profile.get("role_resolved")
     style_desc = interviewer_profile.get("style_resolved")
     extra_notes = interviewer_profile.get("extra_notes")
     tts_persona = interviewer_profile.get("tts_persona")
 
-    # 2) 決定 voice：如果這個 session 已經有 tts_voice，就沿用；沒有才挑一次
+    # 2) select voice: reuse existing session voice if available
     selected_voice = interviewer_profile.get("tts_voice")
     if not selected_voice:
         selected_voice = pick_voice(gender)
         interviewer_profile["tts_voice"] = selected_voice
         session["interviewer_profile"] = interviewer_profile
-        # ⭐ 寫回檔案，之後這個 session 的所有題目就都用同一個 voice
+        # Persist session so all future questions use the same voice
         mock_interview.save_mock_session(session)
 
-    # 3) 組 instructions：優先用 tts_persona，沒有才自己拼
+    # 3) build instructions: prefer precomputed tts_persona if available
     if tts_persona:
         tts_instructions = (
             f"{tts_persona} "
@@ -1717,7 +1757,7 @@ async def tts_question(req: TTSRequest):
     print("[TTS] voice:", selected_voice)
     print("[TTS] instructions:", tts_instructions)
 
-    # 4) 呼叫 OpenAI TTS
+    # 4) call OpenAI TTS
     try:
         with client.audio.speech.with_streaming_response.create(
             model="gpt-4o-mini-tts",
