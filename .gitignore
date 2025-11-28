@@ -68,7 +68,8 @@ staticfiles/
 # =============================
 # Uploaded / user data (optional)
 # =============================
-user_data/
+user_data/session_media
+user_data/mock/media
 
 # =============================
 # PDFs / Resume parsing artifacts (optional)
