@@ -1,0 +1,82 @@
+# =============================
+# Python cache / compiled files
+# =============================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+
+# =============================
+# Virtual Environments
+# =============================
+venv/
+env/
+.venv/
+*/venv/
+*/env/
+*/.venv/
+intelliview-env/
+interview-env/
+
+# =============================
+# Environment / Secrets
+# =============================
+.env
+.env.*
+*.env
+
+# =============================
+# macOS system files
+# =============================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# =============================
+# Logs
+# =============================
+*.log
+logs/
+log/
+
+# =============================
+# IDE / Editor files
+# =============================
+.vscode/
+.idea/
+*.code-workspace
+
+# =============================
+# Jupyter Notebook Checkpoints
+# =============================
+.ipynb_checkpoints/
+
+# =============================
+# Build artifacts
+# =============================
+build/
+dist/
+*.egg-info/
+
+# =============================
+# FastAPI / Web app generated
+# =============================
+staticfiles/
+
+# =============================
+# Uploaded / user data (optional)
+# =============================
+# user_data/
+
+# =============================
+# PDFs / Resume parsing artifacts (optional)
+# =============================
+*.pdf
+
+# =============================
+# Media (optional, uncomment if needed)
+# =============================
+# recordings/
+# videos/
+# audio/
