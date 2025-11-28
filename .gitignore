@@ -15,6 +15,7 @@ env/
 .venv/
 */venv/
 */env/
+*-env/
 */.venv/
 intelliview-env/
 interview-env/
@@ -67,7 +68,7 @@ staticfiles/
 # =============================
 # Uploaded / user data (optional)
 # =============================
-# user_data/
+user_data/
 
 # =============================
 # PDFs / Resume parsing artifacts (optional)

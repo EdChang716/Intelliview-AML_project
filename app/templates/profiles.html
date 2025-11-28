@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intelliview Coach – Interview Profiles</title>
+  <!-- 共用 top nav -->
+  <!-- 專用 Profiles 版面 -->
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/profile.css" />
+  <link rel="stylesheet" href="/static/global-nav.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}" class="nav-active">Profiles</a>
+        <a href="{{ request.url_for('mock_settings_page') }}">Mock Interview</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- 頁首文字區 -->
+      <section class="page-header">
+        <h1>Interview profiles</h1>
+        <p class="page-subtitle">
+          Each profile combines a job description with one of your resume versions.
+        </p>
+      </section>
+
+      <!-- Profiles 卡片區 -->
+      <section class="card profiles-card">
+        <div class="profiles-header">
+          <div>
+            <h2 class="section-title">Saved profiles</h2>
+            <p class="section-subtitle">
+              Select a profile to start practicing interview questions tailored to that job.
+            </p>
+          </div>
+          <a href="{{ request.url_for('new_profile_page') }}"
+             class="btn primary-btn add-profile-btn">
+            + Add new profile
+          </a>
+        </div>
+
+        {% if profiles %}
+        <div class="profiles-list">
+          {% for p in profiles %}
+          {% set has_jd = p.jd_text is defined and p.jd_text %}
+          <article class="profile-card">
+            <!-- 上：標題列 -->
+            <header class="profile-header-row">
+              <div>
+                <h3 class="profile-title">{{ p.job_title }}</h3>
+                <p class="profile-company">
+                  {{ p.company or "Company not set" }}
+                </p>
+              </div>
+              <span class="resume-pill">
+                {{ p.resume_id }}
+              </span>
+            </header>
+
+            <!-- 中：JD 摘要 -->
+            <div class="profile-body">
+              {% if has_jd %}
+              {% set snippet_len = 220 %}
+              <p class="profile-snippet">
+                {{ p.jd_text[:snippet_len] }}{% if p.jd_text|length > snippet_len %}...{% endif %}
+              </p>
+              <button
+                type="button"
+                class="link-btn see-more-jd"
+                data-full-jd="{{ p.jd_text|e }}"
+                data-title="{{ p.job_title|e }}{% if p.company %} at {{ p.company|e }}{% endif %}"
+              >
+                See more
+              </button>
+              {% else %}
+              <p class="profile-snippet">
+                No job description yet.
+              </p>
+              {% endif %}
+            </div>
+
+            <!-- 下：stats + Practice -->
+            <footer class="profile-footer">
+              {% set s = p.stats %}
+              <div class="profile-stats">
+                <div class="small-label">Practice</div>
+                {% if s.total > 0 %}
+                  <p class="profile-stats-line">
+                    Total {{ s.total }}
+                  </p>
+                  <p class="profile-stats-line sub">
+                    Auto {{ s.by_mode.auto }} · Behavioral {{ s.by_mode.behavioral }} · Project {{ s.by_mode.project }}
+                  </p>
+                {% else %}
+                  <p class="profile-stats-line">
+                    No practice history yet.
+                  </p>
+                {% endif %}
+                <div class="profile-history-links">
+                  <a href="/profiles/{{ p.profile_id }}/history"
+                    class="link-btn profile-history-link">
+                    Practice history →
+                  </a>
+                  <a href="/profiles/{{ p.profile_id }}/mock_history"
+                    class="link-btn profile-history-link mock-history-link">
+                    Mock history →
+                  </a>
+                </div>
+              </div>
+
+              <a href="{{ request.url_for('practice_page', profile_id=p.profile_id) }}"
+                class="btn primary-btn profile-practice-btn">
+                Practice
+              </a>
+            </footer>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="hint-text">
+          You don’t have any profiles yet. Click
+          <strong>“+ Add new profile”</strong> to create one using one of your resumes.
+        </p>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+
+  <!-- JD Modal：See more 會打開 -->
+  <div class="jd-modal hidden" id="jd-modal">
+    <div class="jd-modal-backdrop" id="jd-modal-backdrop"></div>
+    <div class="jd-modal-box">
+      <button type="button" class="jd-close" id="jd-modal-close">&times;</button>
+      <h3 id="jd-modal-title">Job description</h3>
+      <div class="jd-modal-content" id="jd-modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const modal = document.getElementById("jd-modal");
+      const modalTitle = document.getElementById("jd-modal-title");
+      const modalContent = document.getElementById("jd-modal-content");
+      const closeBtn = document.getElementById("jd-modal-close");
+      const backdrop = document.getElementById("jd-modal-backdrop");
+
+      function openModal(title, text) {
+        modalTitle.textContent = title || "Job description";
+        modalContent.textContent = text || "";
+        modal.classList.remove("hidden");
+      }
+
+      function closeModal() {
+        modal.classList.add("hidden");
+      }
+
+      document.querySelectorAll(".see-more-jd").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const full = btn.getAttribute("data-full-jd") || "";
+          const title = btn.getAttribute("data-title") || "Job description";
+          openModal(title, full);
+        });
+      });
+
+      closeBtn.addEventListener("click", closeModal);
+      backdrop.addEventListener("click", closeModal);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeModal();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+/* ============================
+   Global layout & background
+   ============================ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  color: #111827;
+}
+
+/* 跟首頁一樣的淡藍漸層背景 */
+body {
+  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
+    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+}
+
+/* 主容器寬度，跟首頁 / profiles 一致 */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 72px;
+}
+
+/* ============================
+   Page header
+   ============================ */
+
+.page-header {
+  padding: 40px 0 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #4b5563;
+  max-width: 640px;
+}
+
+/* ============================
+   Card
+   ============================ */
+
+.card {
+  /* 原本就有的： */
+  padding: 24px 24px 28px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+
+  /* 這兩行是關鍵：讓卡片不要整個 1200px 撐滿 */
+  max-width: 1040px;
+  margin: 24px auto 0;
+}
+
+.section-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.section-subtitle {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ============================
+   Form layout
+   ============================ */
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  /* 直接吃滿 card 的寬度就好 */
+  width: 100%;
+}
+.form-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.form-row.full-width {
+  flex-direction: column;
+}
+
+.field-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+
+.field-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.field-hint a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.field-hint a:hover {
+  text-decoration: underline;
+}
+
+/* Input / select / textarea */
+
+.profile-form input[type="text"],
+.profile-form select,
+.profile-form textarea {
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Job description – big textarea */
+.profile-form .jd-textarea {
+  width: 1100px;
+  min-height: 260px;
+  resize: vertical;
+  padding: 14px 16px;
+
+  font-size: 14px;
+  line-height: 1.55;
+
+  border-radius: 16px;
+  border: 1px solid #d0d7e3;
+  background: #fdfdfd;
+
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+  transition: border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* Focus 狀態：亮起藍色 glow */
+.profile-form .jd-textarea:focus,
+.profile-form input[type="text"]:focus,
+.profile-form select:focus {
+  outline: none;
+  background: #ffffff;
+  border: 1px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* ============================
+   Buttons
+   ============================ */
+
+.button-row {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 共用按鈕基底 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* Primary button：跟首頁 CTA 一致 */
+.primary-btn {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  color: #ffffff;
+  border: 1px solid rgba(37, 99, 235, 0.8);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.45);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.55);
+}
+
+/* Ghost button */
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.ghost-btn:hover {
+  background: #f9fafb;
+}
+
+/* ============================
+   Status text & inline link
+   ============================ */
+
+.status-text {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.inline-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
+}
+
+/* ============================
+   Small nav helper (Practice disabled)
+   ============================ */
+
+.nav-disabled {
+  margin-left: 24px;
+  font-size: 14px;
+  color: var(--nav-link-color, #9ca3af);
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ============================
+   RWD
+   ============================ */
+
+@media (max-width: 900px) {
+  .page-header {
+    padding-top: 28px;
+  }
+
+  .form-row {
+    flex-direction: column;
+  }
+
+  .button-row {
+    justify-content: flex-start;
+  }
+
+  .profile-form {
+    max-width: 100%;
+  }
+}
+
+/* 保險：確保 JD textarea 一定不會超出 card */
+.card .profile-form .jd-textarea {
+  max-width: 1000px;
+  display: block;
+}
+
+/* Full-width large input (replacing textarea style) */
+.big-input {
+  width: 100%;
+  max-width: 100%;
+  padding: 14px 16px;
+
+  font-size: 14px;
+  line-height: 1.55;
+
+  border-radius: 16px;
+  border: 1px solid #d0d7e3;
+  background: #fdfdfd;
+
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+  transition: border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  height: 200px;         /* 你可以調整這個高度 */
+}
+
+/* Focus 狀態 */
+.big-input:focus {
+  outline: none;
+  background: #ffffff;
+  border: 1px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}

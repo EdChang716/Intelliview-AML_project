@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mock report – Intelliview Coach</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/global-nav.css" />
+  <link rel="stylesheet" href="/static/mock_reports.css" />
+
+  <style>
+    /* ========== Metrics 區塊共用樣式 (voice + video) ========== */
+
+    .audio-details {
+      margin-top: 8px;
+    }
+
+    .audio-details > summary {
+      list-style: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #d0d7e3;
+      background: #eef2ff;
+      font-size: 12px;
+      font-weight: 500;
+      color: #1f2937;
+      user-select: none;
+    }
+
+    .audio-details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .audio-details[open] > summary {
+      background: #e0e7ff;
+      border-color: #a5b4fc;
+    }
+
+    .metrics-chevron {
+      font-size: 10px;
+      opacity: 0.7;
+    }
+
+    .audio-metrics-list {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .audio-metrics-list li {
+      margin-bottom: 4px;
+    }
+
+    .audio-metrics-list li strong {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .audio-score-row,
+    .video-score-row {
+      margin-top: 4px;
+    }
+
+    .audio-comment {
+      margin-left: 0;
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ========== Body language 標題 + ? 小泡泡 ========== */
+
+    .label-with-help {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .help-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #f3f4f6;
+      font-size: 11px;
+      font-weight: 600;
+      color: #4b5563;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .help-icon:hover {
+      background: #e5e7eb;
+    }
+
+    .help-tooltip {
+      position: absolute;
+      top: 120%;
+      left: 0;
+      z-index: 20;
+
+      width: 280px;
+      max-width: 80vw;
+
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+
+      font-size: 12px;
+      line-height: 1.5;
+      color: #374151;
+
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(2px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .help-tooltip p {
+      margin: 0 0 4px 0;
+    }
+
+    .help-tooltip p:last-child {
+      margin-bottom: 0;
+    }
+
+    .label-with-help:hover .help-tooltip,
+    .label-with-help:focus-within .help-tooltip {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(4px);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+        <a href="{{ request.url_for('mock_settings_page') }}" class="nav-active">Mock Interview</a>
+      </nav>
+    </header>
+
+    <main class="mock-report-main">
+      <!-- 上方：summary 卡片 -->
+      <section class="mock-report-summary card">
+        <div class="summary-top">
+          <div>
+            <h1 class="summary-title">Mock interview report</h1>
+            <p class="summary-subtitle">
+              Profile · <span class="summary-profile">{{ report.profile_id }}</span>
+            </p>
+          </div>
+          <div class="summary-actions">
+            <a
+              class="pill-link"
+              href="/profiles/{{ report.profile_id }}/mock_history"
+            >
+              ← Back to mock history
+            </a>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Overall score</div>
+            <div class="summary-value">
+              {% if report.overall_score is not none %}
+                {% set s = report.overall_score | int %}
+                <span
+                  class="score-pill
+                        {% if s >= 8 %} score-good
+                        {% elif s >= 6 %} score-mid
+                        {% else %} score-low
+                        {% endif %}"
+                >
+                  {{ s }}/10
+                </span>
+              {% else %}
+                <span class="score-pill score-pill-empty">Not scored</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="summary-item">
+            <div class="summary-label">Questions</div>
+            <div class="summary-value">
+              {{ report.questions|length }}
+            </div>
+          </div>
+
+          <div class="summary-item">
+            <div class="summary-label">Date</div>
+            <div class="summary-value">
+              {{ report.created_at[:10] if report.created_at }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 下方：每一題的卡片 -->
+      <section class="mock-report-questions">
+        {% for q in report.questions %}
+        <article class="mock-question-card card">
+          <header class="mock-question-header">
+            <div class="header-left">
+              <span class="q-index-pill">Q{{ q.index + 1 }}</span>
+              <span class="q-id">ID: {{ q.question_id }}</span>
+            </div>
+            <div class="header-right">
+              {# 優先用 overall_score，沒有就用 score #}
+              {% set q_score = q.overall_score if q.overall_score is not none else q.score %}
+              {% if q_score is not none %}
+                {% set s = q_score | int %}
+                <span
+                  class="q-score-pill
+                        {% if s >= 8 %} score-good
+                        {% elif s >= 6 %} score-mid
+                        {% else %} score-low
+                        {% endif %}"
+                >
+                  Score {{ s }}/10
+                </span>
+              {% else %}
+                <span class="q-score-pill q-score-pill-empty">No score</span>
+              {% endif %}
+            </div>
+          </header>
+
+          <div class="mock-question-body">
+            <!-- 題目佔滿整列 -->
+            <div class="block question-full">
+              <div class="small-label">Question</div>
+              <p class="body-text">{{ q.question_text }}</p>
+            </div>
+
+            <!-- 下面做左右兩欄：左＝你的回答＋video＋sample，右＝回饋 -->
+            <div class="mock-body-grid">
+              <!-- 左欄：你的回答 + 錄影 + sample answer -->
+              <div class="mock-body-left">
+                <!-- Your answer -->
+                <div class="block">
+                  <div class="small-label">Your answer (transcript)</div>
+                  <p class="body-text answer-text">{{ q.answer_text or '(no transcript captured for this question)' }}
+                  </p>
+                </div>
+
+                <!-- Recording (video) -->
+                {% if report.session_id and q.index is not none %}
+                <div class="block">
+                  <div class="small-label">Recording</div>
+                  <video
+                    class="mock-video-player"
+                    controls
+                    preload="metadata"
+                    style="max-width: 100%; border-radius: 10px; margin-top: 4px;"
+                  >
+                    <source
+                      src="/mock_media/{{ report.session_id }}/{{ q.index }}"
+                      type="video/webm"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+                {% endif %}
+
+                <!-- Sample answer -->
+                {% if q.sample_answer %}
+                <div class="block">
+                  <div class="small-label">Sample answer</div>
+                  <div class="sample-answer-box">
+                    <p class="body-text sample-answer-text">
+                      {{ q.sample_answer }}
+                    </p>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- 右欄：所有 feedback -->
+              <div class="mock-body-right">
+                <!-- subscores -->
+                {% if q.subscores %}
+                <div class="block feedback-block">
+                  <div class="small-label">Detailed scores</div>
+                  <div class="subscore-grid">
+                    {% for name, val in q.subscores.items() %}
+                      <div class="subscore-item">
+                        <span class="subscore-name">
+                          {{ name|capitalize }}
+                        </span>
+                        {% set s = val | int %}
+                        <span
+                          class="subscore-pill
+                                {% if s >= 8 %} score-good
+                                {% elif s >= 6 %} score-mid
+                                {% else %} score-low
+                                {% endif %}"
+                        >
+                          {{ s }}/10
+                        </span>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+
+                {# === Delivery (audio) block === #}
+                {% set audio = q.audio or {} %}
+                {% if audio.has_audio %}
+                <div class="block feedback-block">
+                  <div class="small-label">Delivery (voice)</div>
+                  <div class="audio-score-row">
+                    {% if audio.delivery_score is not none %}
+                      {% set ds = audio.delivery_score | int %}
+                      <span
+                        class="subscore-pill
+                              {% if ds >= 8 %} score-good
+                              {% elif ds >= 6 %} score-mid
+                              {% else %} score-low
+                              {% endif %}"
+                      >
+                        {{ ds }}/10
+                      </span>
+                    {% else %}
+                      <span class="subscore-pill subscore-pill-empty">Not scored</span>
+                    {% endif %}
+                    <p class="body-text audio-comment">
+                      {{ audio.delivery_comment or 'No delivery feedback available for this answer.' }}
+                    </p>
+                  </div>
+
+                  {% if audio.features %}
+                  <details class="audio-details">
+                    <summary>
+                      View speaking metrics
+                      <span class="metrics-chevron">▾</span>
+                    </summary>
+                    <ul class="audio-metrics-list">
+                      {% if audio.features.wpm is defined %}
+                      <li><strong>Words per minute:</strong> {{ audio.features.wpm | round(1) }}</li>
+                      {% endif %}
+                      {% if audio.features.silence_ratio is defined %}
+                      <li><strong>Silence ratio:</strong> {{ (audio.features.silence_ratio * 100) | round(1) }}%</li>
+                      {% endif %}
+                      {% if audio.features.filler_per_min is defined %}
+                      <li><strong>Filler words per min:</strong> {{ audio.features.filler_per_min | round(2) }}</li>
+                      {% endif %}
+                      {% if audio.features.pitch_range is defined %}
+                      <li><strong>Pitch range:</strong> {{ audio.features.pitch_range | round(1) }}</li>
+                      {% endif %}
+                      {% if audio.features.avg_volume is defined %}
+                      <li><strong>Avg volume (RMS):</strong> {{ audio.features.avg_volume | round(4) }}</li>
+                      {% endif %}
+                      {% if audio.features.volume_std is defined %}
+                      <li><strong>Volume variability:</strong> {{ audio.features.volume_std | round(4) }}</li>
+                      {% endif %}
+                      {% if audio.features.duration_sec is defined %}
+                      <li><strong>Answer length:</strong> {{ audio.features.duration_sec | round(1) }}s</li>
+                      {% endif %}
+                    </ul>
+                  </details>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {# === Body language (video) block === #}
+                {% set video = q.video or {} %}
+                {% set vf = video.features or {} %}
+                {% if video.has_video and vf %}
+                <div class="block feedback-block">
+                  <div class="small-label label-with-help">
+                    Body language (video)
+                    <span class="help-icon" tabindex="0">?</span>
+                    <div class="help-tooltip">
+                      <p><strong>Eye contact</strong></p>
+                      <p class="metric-desc">How consistently you look toward the camera.</p>
+
+                      <p><strong>Facial positivity</strong></p>
+                      <p class="metric-desc">How often you appear to smile or show positive expressions.</p>
+
+                      <p><strong>Posture stability</strong></p>
+                      <p class="metric-desc">How steady and upright your upper body stays.</p>
+
+                      <p><strong>Gestures</strong></p>
+                      <p class="metric-desc">How naturally you use your hands and arms to support your points.</p>
+
+                      <p><strong>Head nodding</strong></p>
+                      <p class="metric-desc">Friendly nods that show engagement (too many can be distracting).</p>
+
+                      <p><strong>Fidgeting control</strong></p>
+                      <p class="metric-desc">How well you avoid small, distracting movements.</p>
+
+                      <p style="margin-top:6px;">
+                        Scores are 1–10. Around 5–7 is a natural baseline; higher usually feels more confident and engaging.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="subscore-grid">
+                    {% if vf.eye_contact_score is defined %}
+                    <div class="subscore-item">
+                      <span class="subscore-name">Eye contact</span>
+                      {% set s = vf.eye_contact_score | float | round(1) %}
+                      <span
+                        class="subscore-pill
+                              {% if s >= 8 %} score-good
+                              {% elif s >= 6 %} score-mid
+                              {% else %} score-low
+                              {% endif %}"
+                      >
+                        {{ s }}/10
+                      </span>
+                    </div>
+                    {% endif %}
+
+                    {% if vf.facial_positivity_score is defined %}
+                    <div class="subscore-item">
+                      <span class="subscore-name">Facial positivity</span>
+                      {% set s = vf.facial_positivity_score | float | round(1) %}
+                      <span
+                        class="subscore-pill
+                              {% if s >= 8 %} score-good
+                              {% elif s >= 6 %} score-mid
+                              {% else %} score-low
+                              {% endif %}"
+                      >
+                        {{ s }}/10
+                      </span>
+                    </div>
+                    {% endif %}
+
+                    {% if vf.posture_stability_score is defined %}
+                    <div class="subscore-item">
+                      <span class="subscore-name">Posture stability</span>
+                      {% set s = vf.posture_stability_score | float | round(1) %}
+                      <span
+                        class="subscore-pill
+                              {% if s >= 8 %} score-good
+                              {% elif s >= 6 %} score-mid
+                              {% else %} score-low
+                              {% endif %}"
+                      >
+                        {{ s }}/10
+                      </span>
+                    </div>
+                    {% endif %}
+
+                    {% if vf.gesture_expressiveness_score is defined %}
+                    <div class="subscore-item">
+                      <span class="subscore-name">Gestures</span>
+                      {% set s = vf.gesture_expressiveness_score | float | round(1) %}
+                      <span
+                        class="subscore-pill
+                              {% if s >= 8 %} score-good
+                              {% elif s >= 6 %} score-mid
+                              {% else %} score-low
+                              {% endif %}"
+                      >
+                        {{ s }}/10
+                      </span>
+                    </div>
+                    {% endif %}
+
+                    {% if vf.head_nodding_score is defined %}
+                    <div class="subscore-item">
+                      <span class="subscore-name">Head nodding</span>
+                      {% set s = vf.head_nodding_score | float | round(1) %}
+                      <span
+                        class="subscore-pill
+                              {% if s >= 8 %} score-good
+                              {% elif s >= 6 %} score-mid
+                              {% else %} score-low
+                              {% endif %}"
+                      >
+                        {{ s }}/10
+                      </span>
+                    </div>
+                    {% endif %}
+
+                    {% if vf.fidgeting_score is defined %}
+                    <div class="subscore-item">
+                      <span class="subscore-name">Fidgeting control</span>
+                      {% set s = vf.fidgeting_score | float | round(1) %}
+                      <span
+                        class="subscore-pill
+                              {% if s >= 8 %} score-good
+                              {% elif s >= 6 %} score-mid
+                              {% else %} score-low
+                              {% endif %}"
+                      >
+                        {{ s }}/10
+                      </span>
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <p class="body-text audio-comment">
+                    These scores summarize your non-verbal communication for this answer.
+                    Higher is generally better; scores around 5–7 reflect a natural, relaxed delivery.
+                  </p>
+
+                  <details class="audio-details">
+                    <summary>
+                      View body-language metrics
+                      <span class="metrics-chevron">▾</span>
+                    </summary>
+                    <ul class="audio-metrics-list">
+                      {% if vf.duration_sec is defined %}
+                      <li>
+                        <strong>Answer length (video):</strong>
+                        {{ vf.duration_sec | round(1) }}s
+                      </li>
+                      {% endif %}
+                      {% if vf.face_presence_ratio is defined %}
+                      <li>
+                        <strong>Face visible:</strong>
+                        {{ (vf.face_presence_ratio * 100) | round(1) }}%
+                      </li>
+                      {% endif %}
+                      {% if vf.eye_contact_ratio is defined %}
+                      <li>
+                        <strong>Eye contact (time):</strong>
+                        {{ (vf.eye_contact_ratio * 100) | round(1) }}%
+                      </li>
+                      {% endif %}
+                      {% if vf.smile_ratio is defined %}
+                      <li>
+                        <strong>Smiling (time):</strong>
+                        {{ (vf.smile_ratio * 100) | round(1) }}%
+                      </li>
+                      {% endif %}
+                      {% if vf.head_nod_rate is defined %}
+                      <li>
+                        <strong>Head nods per minute:</strong>
+                        {{ vf.head_nod_rate | round(2) }}
+                      </li>
+                      {% endif %}
+                      {% if vf.gesture_intensity is defined %}
+                      <li>
+                        <strong>Gesture intensity:</strong>
+                        {{ vf.gesture_intensity | round(2) }}
+                      </li>
+                      {% endif %}
+                      {% if vf.fidget_intensity is defined %}
+                      <li>
+                        <strong>Fidgeting intensity:</strong>
+                        {{ vf.fidget_intensity | round(2) }}
+                      </li>
+                      {% endif %}
+                      {% if vf.fps is defined %}
+                      <li>
+                        <strong>FPS (estimated):</strong>
+                        {{ vf.fps | round(1) }}
+                      </li>
+                      {% endif %}
+                      {% if vf.frame_count is defined %}
+                      <li>
+                        <strong>Frame count:</strong>
+                        {{ vf.frame_count }}
+                      </li>
+                      {% endif %}
+                    </ul>
+                  </details>
+                </div>
+                {% endif %}
+
+                <!-- strengths -->
+                <div class="block feedback-block">
+                  <div class="small-label">What you did well</div>
+                  <p class="body-text">
+                    {{ q.strengths or 'No strengths detected for this answer.' }}
+                  </p>
+                </div>
+
+                <!-- overview -->
+                <div class="block feedback-block">
+                  <div class="small-label">How you can improve (overview)</div>
+                  <p class="body-text">
+                    {{ q.improvements_overview or q.improvements or 'No improvement suggestions available.' }}
+                  </p>
+                </div>
+
+                <!-- improvement items -->
+                {% if q.improvement_items %}
+                <div class="block feedback-block">
+                  <div class="small-label">Specific suggestions</div>
+                  <ul class="improvement-list">
+                    {% for item in q.improvement_items %}
+                      <li class="improvement-card">
+                        <div class="improvement-chip">
+                          {{ item.aspect or 'General' }}
+                        </div>
+                        {% if item.issue %}
+                          <p class="improvement-text">
+                            <strong>Issue.</strong> {{ item.issue }}
+                          </p>
+                        {% endif %}
+                        {% if item.suggestion %}
+                          <p class="improvement-text">
+                            <strong>Suggestion.</strong> {{ item.suggestion }}
+                          </p>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </section>
+    </main>
+  </div>
+</body>
+</html>

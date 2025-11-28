@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mock interview setup – Intelliview Coach</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <!-- 共用 nav / 背景 -->
+  <link rel="stylesheet" href="/static/global-nav.css" />
+  <!-- 這頁自己的樣式 -->
+  <link rel="stylesheet" href="/static/mock_settings.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+        <a href="{{ request.url_for('mock_settings_page') }}" class="nav-active">Mock Interview</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Page header -->
+      <section class="page-header">
+        <h1>Mock interview setup</h1>
+        <p class="page-subtitle">
+          Choose a job profile, then decide how you want this mock interview to run.
+        </p>
+      </section>
+
+      <!-- Main card -->
+      <section class="card">
+        <h2 class="section-title">Session settings</h2>
+        <p class="section-subtitle">
+          Pick a job profile, then either jump into practice mode or set up a realistic timed mock interview.
+        </p>
+
+        <!-- ✅ 用 GET 直接送到 /mock_interview（realistic 用），practice 由 JS 攔截改導向 /practice/{profile_id} -->
+        <form id="mock-form" class="mock-form" action="/mock_interview" method="get">
+          <!-- Row: profile only -->
+          <div class="form-row">
+            <!-- Job profile -->
+            <label class="field-group">
+              <span class="field-label">Job profile</span>
+              <select id="profile-select" name="profile_id" required>
+                <option value="" disabled selected>Select a job profile</option>
+                {% for p in all_profiles %}
+                  <option value="{{ p.profile_id }}"
+                    {% if profile_id is defined and p.profile_id == profile_id %}selected{% endif %}>
+                    {{ p.job_title }}{% if p.company %} – {{ p.company }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <small class="field-hint">
+                Profiles are created from your job descriptions.
+                <a href="{{ request.url_for('profiles_page') }}">Manage profiles</a>.
+              </small>
+            </label>
+          </div>
+
+          <!-- Interviewer gender (for TTS voice) -->
+          <div class="form-row">
+            <label class="field-group">
+              <span class="field-label">Interviewer voice</span>
+              <select id="interviewer-gender" name="interviewer_gender">
+                <option value="auto" selected>Auto (random)</option>
+                <option value="male">Male voice</option>
+                <option value="female">Female voice</option>
+                <option value="neutral">Neutral / mixed</option>
+              </select>
+              <span class="field-hint">
+                This only affects the text-to-speech voice, not the content.
+              </span>
+            </label>
+          </div>
+
+          <!-- Interviewer role -->
+          <div class="form-row">
+            <label class="field-group">
+              <span class="field-label">Interviewer role</span>
+              <select id="interviewer-role" name="interviewer_role">
+                <option value="senior_engineer" selected>Senior engineer (technical)</option>
+                <option value="hiring_manager">Hiring manager</option>
+                <option value="recruiter">Recruiter / HR</option>
+                <option value="peer_teammate">Future teammate / peer</option>
+                <option value="executive">Director / VP</option>
+                <option value="custom">Custom…</option>
+              </select>
+              <span class="field-hint">
+                Choose who is interviewing you. Select "Custom…" if you want to define it yourself.
+              </span>
+            </label>
+          </div>
+
+          <!-- Interviewer role: custom text（只有選 custom 時顯示） -->
+          <div class="form-row" id="role-custom-row" style="display: none;">
+            <label class="field-group">
+              <span class="field-label">Custom interviewer role</span>
+              <input
+                type="text"
+                id="interviewer-role-custom"
+                name="interviewer_role_custom"
+                placeholder="e.g., A startup CTO who cares a lot about ownership and scrappiness."
+              />
+            </label>
+          </div>
+
+          <!-- Interviewer style preset -->
+          <div class="form-row">
+            <label class="field-group">
+              <span class="field-label">Interviewer style</span>
+              <select id="interviewer-style" name="interviewer_style_preset">
+                <option value="balanced" selected>Balanced – neutral but probing</option>
+                <option value="supportive">Supportive – encouraging and patient</option>
+                <option value="direct">Direct – concise, to the point</option>
+                <option value="challenging">Challenging – pushes on weak spots</option>
+                <option value="high_pressure">High-pressure – fast-paced, skeptical</option>
+                <option value="custom">Custom…</option>
+              </select>
+              <span class="field-hint">
+                This controls tone and how hard they push you. Select "Custom…" to fully define it.
+              </span>
+            </label>
+          </div>
+
+          <!-- Interviewer style: custom text（只有選 custom 時顯示） -->
+          <div class="form-row" id="style-custom-row" style="display: none;">
+            <label class="field-group">
+              <span class="field-label">Custom interviewer style</span>
+              <textarea
+                id="interviewer-style-custom"
+                name="interviewer_style_custom"
+                rows="3"
+                placeholder="e.g., Very direct and a bit skeptical, frequently asking 'why' and challenging vague claims."
+              ></textarea>
+            </label>
+          </div>
+
+          <!-- 額外補充（你之前想要的 extra notes，可以保留） -->
+          <div class="form-row">
+            <label class="field-group">
+              <span class="field-label">Extra notes (optional)</span>
+              <textarea
+                id="interviewer-extra-notes"
+                name="interviewer_extra_notes"
+                rows="3"
+                placeholder="Anything else you want to specify about the interviewer (accent, pace, region, etc.)."
+              ></textarea>
+            </label>
+          </div>
+
+          <!-- Row: mode -->
+          <div class="form-row full-width">
+            <label class="field-group">
+              <span class="field-label">Interview style</span>
+              <div class="radio-row">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="practice"
+                    checked
+                  />
+                  <span class="radio-text">
+                    Practice mode
+                    <span class="radio-sub">
+                      Go back to the practice screen and answer questions at your own pace.
+                    </span>
+                  </span>
+                </label>
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="realistic"
+                  />
+                  <span class="radio-text">
+                    Realistic mode
+                    <span class="radio-sub">
+                      Questions come one by one with limited thinking time.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </label>
+          </div>
+
+          <!-- Row: length settings（只給 realistic 用） -->
+          <div class="form-row full-width" id="length-block">
+            <label class="field-group">
+              <span class="field-label">Session length</span>
+
+              <div class="length-row">
+                <label class="length-option">
+                  <input
+                    type="radio"
+                    name="length_type"
+                    value="questions"
+                    checked
+                  />
+                  <span>By number of questions</span>
+                  <select id="num-questions-select" name="num_questions">
+                    <option value="3">3 questions</option>
+                    <option value="5" selected>5 questions</option>
+                    <option value="8">8 questions</option>
+                    <option value="10">10 questions</option>
+                  </select>
+                </label>
+
+                <label class="length-option">
+                  <input
+                    type="radio"
+                    name="length_type"
+                    value="time"
+                  />
+                  <span>By time limit</span>
+                  <select id="time-limit-select" name="time_limit" disabled>
+                    <option value="15">15 minutes</option>
+                    <option value="30" selected>30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                  <small class="field-hint">
+                    The session won't stop mid-answer. You'll always finish the current question.
+                  </small>
+                </label>
+              </div>
+            </label>
+          </div>
+
+          <!-- Row: hint level -->
+          <div class="form-row full-width">
+            <label class="field-group">
+              <span class="field-label">Coaching hints</span>
+              <select id="hint-level-select" name="hint_level">
+                <option value="minimal">Minimal – no visible hints</option>
+                <option value="standard" selected>Standard – bullets & structure tips</option>
+                <option value="full">Full coach – detailed hints for each question</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Buttons -->
+          <div class="button-row">
+            <a href="{{ request.url_for('profiles_page') }}" class="btn ghost-btn">
+              Cancel
+            </a>
+            <button type="submit" class="btn primary-btn">
+              Start
+            </button>
+          </div>
+
+          <p id="mock-settings-status" class="status-text"></p>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("mock-form");
+      const statusEl = document.getElementById("mock-settings-status");
+      const profileSelect = document.getElementById("profile-select");
+
+      const lengthBlock = document.getElementById("length-block");
+      const lengthTypeRadios = form.elements["length_type"];
+      const numQuestionsSelect = document.getElementById("num-questions-select");
+      const timeLimitSelect = document.getElementById("time-limit-select");
+      const modeRadios = document.querySelectorAll('input[name="mode"]');
+
+      // interviewer role/style custom 控制
+      const roleSelect = document.getElementById("interviewer-role");
+      const roleCustomRow = document.getElementById("role-custom-row");
+      const roleCustomInput = document.getElementById("interviewer-role-custom");
+
+      const styleSelect = document.getElementById("interviewer-style");
+      const styleCustomRow = document.getElementById("style-custom-row");
+      const styleCustomInput = document.getElementById("interviewer-style-custom");
+
+      function getSelectedMode() {
+        const checked = document.querySelector('input[name="mode"]:checked');
+        return checked ? checked.value : "realistic";
+      }
+
+      function updateLengthVisibility() {
+        const mode = getSelectedMode();
+        if (mode === "practice") {
+          // Practice: 不需要長度設定
+          lengthBlock.style.display = "none";
+        } else {
+          lengthBlock.style.display = "";
+        }
+      }
+
+      function updateLengthControls() {
+        const value = Array.from(lengthTypeRadios).find(r => r.checked)?.value;
+        if (value === "questions") {
+          numQuestionsSelect.disabled = false;
+          timeLimitSelect.disabled = true;
+        } else {
+          numQuestionsSelect.disabled = true;
+          timeLimitSelect.disabled = false;
+        }
+      }
+
+      function updateRoleCustomVisibility() {
+        if (!roleSelect || !roleCustomRow) return;
+        if (roleSelect.value === "custom") {
+          roleCustomRow.style.display = "block";
+        } else {
+          roleCustomRow.style.display = "none";
+          if (roleCustomInput) roleCustomInput.value = "";
+        }
+      }
+
+      function updateStyleCustomVisibility() {
+        if (!styleSelect || !styleCustomRow) return;
+        if (styleSelect.value === "custom") {
+          styleCustomRow.style.display = "block";
+        } else {
+          styleCustomRow.style.display = "none";
+          if (styleCustomInput) styleCustomInput.value = "";
+        }
+      }
+
+      modeRadios.forEach(r => {
+        r.addEventListener("change", () => {
+          updateLengthVisibility();
+        });
+      });
+
+      Array.from(lengthTypeRadios).forEach(r => {
+        r.addEventListener("change", updateLengthControls);
+      });
+
+      if (roleSelect) {
+        roleSelect.addEventListener("change", updateRoleCustomVisibility);
+        // 頁面載入時跑一次（避免有預設值時沒更新 UI）
+        updateRoleCustomVisibility();
+      }
+
+      if (styleSelect) {
+        styleSelect.addEventListener("change", updateStyleCustomVisibility);
+        updateStyleCustomVisibility();
+      }
+
+      // 初始化
+      updateLengthVisibility();
+      updateLengthControls();
+
+      form.addEventListener("submit", (e) => {
+        const mode = getSelectedMode();
+        const profileId = profileSelect.value;
+
+        statusEl.textContent = "";
+
+        if (!profileId) {
+          e.preventDefault();
+          statusEl.textContent = "Please select a job profile.";
+          return;
+        }
+
+        if (mode === "practice") {
+          // ✅ Practice：直接回到文字練習頁，不走 mock_interview
+          e.preventDefault();
+          const url = `/practice/${encodeURIComponent(profileId)}`;
+          window.location.href = url;
+          return;
+        }
+
+        // ✅ Realistic：讓 form 用 GET 送到 /mock_interview
+      });
+    });
+  </script>
+</body>
+</html>

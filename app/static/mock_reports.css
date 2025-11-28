@@ -1,0 +1,822 @@
+/* ============================
+   全域：字體、背景、容器
+   ============================ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  color: #111827;
+}
+
+/* 與首頁一致的淡藍漸層背景 */
+body {
+  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
+    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+}
+
+/* 中央主要寬度，類似 home-container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto 72px;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+/* ============================
+   主體排版
+   ============================ */
+
+.mock-report-main {
+  margin-top: 72px; /* 避開 nav */
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 共用卡片樣式 */
+.card {
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+  padding: 18px 20px 20px;
+}
+
+/* ============================
+   Summary 區塊
+   ============================ */
+
+.mock-report-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.summary-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.summary-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.summary-profile {
+  font-weight: 600;
+  color: #111827;
+}
+
+.summary-actions {
+  display: flex;
+  align-items: center;
+}
+
+.pill-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+  color: #374151;
+  text-decoration: none;
+  background: #f9fafb;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.pill-link:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.18);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f9fafb;
+  border: 1px dashed #e5e7eb;
+}
+
+.summary-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.score-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.score-pill-empty {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ============================
+   Question list
+   ============================ */
+
+.mock-report-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mock-question-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.q-index-pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.q-id {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.q-score-pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.q-score-pill-empty {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* 內容：左右兩欄 */
+.mock-question-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 2px;
+}
+
+.qa-column,
+.feedback-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.block {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.small-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1f57c7;
+  margin-bottom: 4px;
+  font-weight: 600; 
+}
+
+.body-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #111827;
+}
+
+.answer-text {
+  white-space: pre-wrap;
+}
+
+/* ============================
+   RWD
+   ============================ */
+
+@media (max-width: 900px) {
+  .mock-report-main {
+    margin-top: 64px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mock-question-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mock-question-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.subscore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 6px 10px;
+}
+
+.subscore-item {
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+}
+
+.improvement-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.improvement-aspect {
+  font-weight: 600;
+}
+
+.improvement-suggestion {
+  margin-top: 2px;
+}
+
+.sample-answer-box {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+/* 右側整體 block 間距稍微緊一點 */
+.feedback-block {
+  margin-bottom: 10px;
+}
+
+/* ---- Subscores ---- */
+
+.subscore-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.subscore-row {
+  display: grid;
+  grid-template-columns: minmax(0, 80px) 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.subscore-name {
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.subscore-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.subscore-bar-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+}
+
+.subscore-number {
+  font-variant-numeric: tabular-nums;
+  color: #6b7280;
+}
+
+/* ---- Improvement items ---- */
+
+.improvement-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.improvement-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 8px 10px;
+}
+
+.improvement-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: #e0f2fe;
+  color: #0369a1;
+  margin-bottom: 4px;
+}
+
+.improvement-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4b5563;
+  margin: 2px 0;
+}
+
+/* ---- Sample answer ---- */
+
+.sample-answer-box {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.sample-answer-text {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 讓整個右欄看起來更緊實一點 */
+.feedback-column .small-label {
+  margin-bottom: 4px;
+}
+
+.feedback-block {
+  margin-bottom: 10px;
+}
+
+/* Detailed scores：左右排，右邊是一個小 pill */
+.subscore-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.subscore-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.subscore-name {
+  color: #4b5563;
+}
+
+.subscore-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Improvement items */
+.improvement-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.improvement-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 8px 10px;
+}
+
+.improvement-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: #e0f2fe;
+  color: #0369a1;
+  margin-bottom: 4px;
+}
+
+.improvement-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4b5563;
+  margin: 2px 0;
+}
+
+.sample-answer-box {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  max-height: 160px;        /* 避免太長 */
+  overflow-y: auto;         /* 超過就捲動 */
+}
+
+.sample-answer-text {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* ===== Detailed scores ===== */
+
+.subscore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.subscore-item {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.subscore-name {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.subscore-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 整張 question card 的 layout */
+
+.mock-question-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-full {
+  margin-bottom: 4px;
+}
+
+.mock-body-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* 左右欄裡面的 block 排列 */
+.mock-body-left,
+.mock-body-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Detailed scores：小卡片 */
+.subscore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.subscore-item {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.subscore-name {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.subscore-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Specific suggestions：維持卡片風格 */
+.improvement-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.improvement-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 8px 10px;
+}
+
+.improvement-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: #e0f2fe;
+  color: #0369a1;
+  margin-bottom: 4px;
+}
+
+.improvement-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4b5563;
+  margin: 2px 0;
+}
+
+/* Sample answer：左欄的灰底框，避免太高 */
+.sample-answer-box {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.sample-answer-text {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 縮小螢幕時改成單欄排版 */
+@media (max-width: 960px) {
+  .mock-body-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 共用的分數顏色：高分 / 中等 / 待加強 */
+.score-good {
+  background: #dcfce7;  /* 淺綠 */
+  color: #166534;       /* 深綠字 */
+}
+
+.score-mid {
+  background: #fef9c3;  /* 淺黃 */
+  color: #854d0e;       /* 黃系深字 */
+}
+
+.score-low {
+  background: #fee2e2;  /* 淺紅 */
+  color: #991b1b;       /* 紅系深字 */
+}
+
+/* 確保 pill 類型外觀一致 */
+.score-pill,
+.q-score-pill,
+.subscore-pill {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+  .small-label-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .info-icon {
+    border: none;
+    background: #e5edff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .info-icon:hover {
+    background: #d0e0ff;
+  }
+
+  .metric-help-popover {
+    display: none;
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+  }
+
+  .metric-help-popover.visible {
+    display: block;
+  }
+
+  .metric-help-popover ul {
+    margin: 4px 0 0;
+    padding-left: 16px;
+  }
+
+  .metric-help-popover li {
+    margin-bottom: 2px;
+  }
+
+/* ========== Metrics 區塊共用樣式 (voice + video 都吃得到) ========== */
+
+/* 整個展開區距離上面內容一點空隙 */
+.audio-details {
+  margin-top: 8px;
+}
+
+/* 把 summary 改成像按鈕的樣子 */
+.audio-details > summary {
+  list-style: none;               /* 移除預設 marker */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d0d7e3;
+  background: #eef2ff;            /* 淡紫／藍底，小 pill 感 */
+  font-size: 12px;
+  font-weight: 500;
+  color: #1f2937;
+  user-select: none;
+}
+
+/* 有些瀏覽器 marker 要另外砍掉 */
+.audio-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 展開時的狀態：顏色稍微加深一點 */
+.audio-details[open] > summary {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+}
+
+/* summary 裡面如果你想加個小箭頭可以用這個 class 包一個 span */
+.metrics-chevron {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* 下面那塊數值列表，用卡片風格呈現 */
+.audio-metrics-list {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.audio-metrics-list li {
+  margin-bottom: 4px;
+}
+
+/* 指標名稱比較凸顯一點 */
+.audio-metrics-list li strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* 讓 voice / video 的說明文字不要緊貼按鈕 */
+.audio-score-row,
+.video-score-row {
+  margin-top: 4px;
+}
+
+.audio-comment {
+  margin-left: 0;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.metric-desc {
+  margin-top: -6px;
+  margin-bottom: 12px;
+  color: #5c636d; /* gray-600 */
+  font-size: 14px;
+  line-height: 1.45;
+}

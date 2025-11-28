@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Practice – Intelliview Coach</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/practice.css" />
+  <link rel="stylesheet" href="/static/global-nav.css" />
+
+  <!-- 專門針對「當前題目高亮、舊題目變淡」的覆寫樣式 -->
+  <style>
+    /* 讓整個中間區塊再高一點，問題看起來更有存在感 */
+    .chat-thread {
+      max-height: 460px;
+    }
+
+    /* 當前題目卡片：白底、微微藍邊框、小陰影 */
+    .practice-question-card-current {
+      background: #ffffff;
+      border-color: rgba(37, 99, 235, 0.28);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.10);
+    }
+
+    /* 舊題目：灰白底、整體稍微淡一點 */
+    .practice-question-card-previous {
+      background: #f9fafb;
+      opacity: 0.65;
+    }
+    .practice-question-card-previous .small-label {
+      color: #9ca3af;
+    }
+    .practice-question-card-previous p {
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+        <a href="#" class="nav-active">Mock Interview (Practice)</a>
+      </nav>
+    </header>
+
+    <main class="practice-page">
+      <section class="card practice-layout">
+        <!-- LEFT COLUMN: Profile info / progress / history -->
+        <aside class="practice-sidebar">
+          <div class="sidebar-section">
+            <h3 class="sidebar-title">Profile</h3>
+            <p class="practice-profile-id">
+              ID: {{ profile_id }}
+            </p>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="practice-meta">
+              <div>
+                <div class="small-label">Mode</div>
+                <select id="question-mode" class="select">
+                  <option value="auto">Auto (from JD)</option>
+                  <option value="behavioral">Behavioral</option>
+                  <option value="project">Project deep dive</option>
+                  <option value="technical">Technical</option>
+                  <option value="case">Case reasoning</option>
+                  <option value="custom">Custom question</option>
+                </select>
+              </div>
+              <div>
+                <div class="small-label">Status</div>
+                <div id="progress-chip" class="status-chip status-loading">
+                  <span class="status-dot"></span>
+                  <span id="progress-text">Q1 · Generating sample answer…</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Behavioral subtype selector -->
+          <div id="behavioral-type-wrapper" class="sidebar-section" style="display: none;">
+            <div class="small-label">Behavioral focus</div>
+            <select id="behavioral-type-select" class="select">
+              <option value="random">Random</option>
+              <option value="teamwork">Teamwork</option>
+              <option value="conflict">Conflict</option>
+              <option value="leadership">Leadership</option>
+              <option value="failure">Failure / mistakes</option>
+              <option value="strengths_weaknesses">Strengths & weaknesses</option>
+            </select>
+          </div>
+
+          <!-- Project / experience selector -->
+          <div id="project-entry-wrapper" class="sidebar-section" style="display: none;">
+            <div class="small-label">Project / experience</div>
+            <select id="project-entry-select" class="select">
+              <option value="">Select an entry…</option>
+            </select>
+          </div>
+
+          <!-- Suggested bullets panel -->
+          <div class="sidebar-section practice-hints">
+            <div class="small-label section-label">Suggested bullets</div>
+            <ul id="bullet-hints" class="bullet-hints">
+              <li>CAYIN – LLM-powered generative ad tool</li>
+              <li>Groundwater LSTM-ED forecasting project</li>
+            </ul>
+          </div>
+
+          <!-- Live stats summary -->
+          <div id="stats-summary" class="sidebar-section practice-stats-box">
+            <div class="small-label section-label">Stats</div>
+            <p>Loading...</p>
+          </div>
+
+          <!-- Practice history -->
+          <div class="sidebar-section practice-history-wrapper">
+            <div class="practice-history-toggle" id="history-toggle">
+              <span>Practice history</span>
+              <button class="btn small-btn ghost-btn" id="history-toggle-btn">View</button>
+            </div>
+
+            <!-- panel 保留但不會被打開 -->
+            <div id="history-panel" class="practice-history-panel" style="display:none;">
+              <ul id="history-list"></ul>
+              <a href="{{ request.url_for('practice_history_page', profile_id=profile_id) }}"
+                 class="history-full-link">
+                View all in detail
+              </a>
+            </div>
+          </div>
+        </aside>
+
+        <!-- MIDDLE COLUMN: Question cards + answer box -->
+        <section class="practice-main">
+          <div class="practice-question-header">
+            <span class="question-tag" id="question-type-tag">Mode</span>
+            <span class="question-counter" id="question-index">Q0</span>
+          </div>
+
+          <!-- Custom question panel -->
+          <div id="custom-question-panel" class="custom-question-panel" style="display:none;">
+            <div class="small-label">Custom question</div>
+            <textarea id="custom-question-text" rows="3"
+                      class="textarea"
+                      placeholder="Type your interview question here, then click 'Use my own question'."></textarea>
+          </div>
+
+          <!-- Question cards thread -->
+          <div class="chat-thread" id="chat-thread"></div>
+
+          <!-- Answer input area + recording summary / launcher -->
+          <div class="practice-answer-block card-section">
+            <div class="small-label">Your answer</div>
+            <textarea id="user-answer" rows="6"
+                      class="textarea"
+                      placeholder="Type your answer here. You can also record an audio/video answer."></textarea>
+
+            <div class="recording-controls">
+              <div class="recording-buttons">
+                <button class="btn ghost-btn" id="open-recorder-btn">
+                  🎥 Open recorder
+                </button>
+              </div>
+              <p class="recording-message-small">
+                Choose audio or video in the recorder. Your answer will be saved here with this question.
+              </p>
+
+              <div id="recording-summary" class="recording-summary hidden">
+                <div class="recording-summary-main">
+                  <div class="recording-summary-dot"></div>
+                  <div id="recording-summary-meta" class="recording-summary-meta">
+                    Video · 00:00
+                  </div>
+                </div>
+                <audio id="recording-playback-audio"
+                       class="recording-playback hidden"
+                       controls></audio>
+                <video id="recording-playback-video"
+                       class="recording-playback hidden"
+                       controls
+                       playsinline></video>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="practice-main-actions">
+            <button class="btn ghost-btn" id="custom-question-btn">
+              Use my own question
+            </button>
+            <button class="btn ghost-btn" id="save-answer-btn">
+              Save answer
+            </button>
+            <button class="btn primary-btn" id="followup-question-btn">
+              Ask follow-up
+            </button>
+            <button class="btn primary-btn" id="next-question-btn">
+              Next question
+            </button>
+          </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Sample answer panel -->
+        <aside class="practice-sample">
+          <div class="sample-header">
+            <span class="small-label">AI sample answer</span>
+            <div class="sample-header-buttons">
+              <button class="btn small-btn ghost-btn" id="generate-answer-btn">
+                Generate sample answer
+              </button>
+              <button class="btn small-btn ghost-btn" id="toggle-sample-btn">
+                Hide / Reveal
+              </button>
+            </div>
+          </div>
+
+          <div class="sample-content blurred" id="sample-answer-box">
+            <div id="sample-hint-block" class="sample-hint-card">
+              <div class="small-label">Hint (how to answer)</div>
+              <p id="sample-hint-text">
+                Hint will appear here after you generate a sample answer.
+              </p>
+            </div>
+
+            <div class="sample-answer-block">
+              <div class="small-label">Sample answer</div>
+              <p id="sample-answer-text">
+                Sample answer will appear here after you click "Generate sample answer".
+              </p>
+            </div>
+
+            <div class="sample-rationale-block">
+              <div class="small-label">Why this works</div>
+              <p id="sample-rationale-text">
+                The coach's explanation will show here.
+              </p>
+            </div>
+          </div>
+
+          <p class="sample-hint-footer">
+            Generated using selected bullets from your resume and this profile's job description
+            (RAG: JD + question → bullets → LLM). You can adjust bullet selection and regenerate.
+          </p>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <!-- Coach launcher：右下角小按鈕 -->
+  <div class="coach-launcher" id="coach-launcher">
+    <button class="coach-launcher-btn">
+      <span class="coach-launcher-icon">💬</span>
+      <span class="coach-launcher-label">Coach</span>
+    </button>
+  </div>
+
+  <!-- Coach chat 視窗 -->
+  <div class="coach-chat-wrapper" id="coach-chat-wrapper" style="display: none;">
+    <div class="coach-chat-card">
+      <div class="coach-chat-header">
+        <span class="coach-chat-title">Coach chat</span>
+        <button class="coach-chat-close" id="coach-chat-close">×</button>
+      </div>
+
+      <div class="coach-chat-body">
+        <div id="coach-chat-thread" class="coach-chat-thread"></div>
+
+        <div class="coach-input-row">
+          <textarea
+            id="coach-input"
+            class="coach-input"
+            rows="3"
+            placeholder="Tell the coach how you'd like to adjust the answer (e.g., focus on a different project, shorten it, etc.)"
+          ></textarea>
+          <button class="coach-send-btn" id="coach-send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recorder modal -->
+  <div class="rec-modal hidden" id="recorder-modal">
+    <div class="rec-modal-dialog">
+      <div class="rec-modal-header">
+        <div>
+          <div class="rec-modal-title">Record your answer</div>
+          <div class="rec-modal-subtitle">
+            Choose audio or video, then click <strong>Start</strong> when you're ready.
+          </div>
+        </div>
+        <button class="rec-close-btn" id="rec-close-btn">×</button>
+      </div>
+
+      <div class="rec-current-question" id="rec-current-question"></div>
+
+      <div class="rec-mode-toggle">
+        <button id="rec-mode-audio" type="button">Audio only</button>
+        <button id="rec-mode-video" type="button" class="active">Video + audio</button>
+      </div>
+
+      <div class="rec-preview-shell">
+        <video id="rec-preview-video"
+               class="rec-preview-video"
+               autoplay
+               muted
+               playsinline></video>
+        <div id="rec-audio-placeholder" class="rec-audio-placeholder hidden">
+          Audio-only mode selected. Your microphone will be recorded after you click Start.
+        </div>
+      </div>
+
+      <div class="rec-bottom-row">
+        <div>
+          <span class="rec-timer" id="rec-timer">00:00</span>
+          <span class="rec-status" id="rec-status"></span>
+        </div>
+        <div class="rec-actions">
+          <button class="btn ghost-btn" id="rec-stop-btn" disabled>Stop</button>
+          <button class="btn primary-btn" id="rec-start-btn">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PROFILE_ID = "{{ profile_id }}";
+
+    // ---- Global state ----
+    let CURRENT_MODE = "auto";
+    let CURRENT_BEHAVIORAL_TYPE = "random";
+    let CURRENT_ENTRY_KEY = null;
+    let CURRENT_QUESTION = "";
+    let QUESTION_COUNT = 0;
+    let currentQuestionCard = null;    // ← 目前高亮的題目卡片
+
+    // Follow-up state
+    let CURRENT_BASE_QUESTION = "";
+    let CURRENT_THREAD_ID = null;
+    let CURRENT_IS_FOLLOWUP = false;
+    let FOLLOWUP_DONE = false;
+    let CURRENT_LAST_ANSWER = "";
+
+    // ---- Recording state (modal) ----
+    let REC_MODE = "video"; // "audio" | "video"
+    let recMediaStream = null;
+    let recMediaRecorder = null;
+    let recChunks = [];
+    let recStartTime = null;
+    let recTimerId = null;
+    let lastRecordingUrl = null;
+    let lastRecordingType = null;
+    let lastRecordingDurationMs = null;
+
+    // 🔥 實際要上傳給後端的 Blob + meta
+    let currentMediaBlob = null;           // Blob(audio/video)
+    let currentMediaMeta = null;           // { type: "audio"|"video", durationMs: ... }
+
+    // dragging
+    let isRecDragging = false;
+    let recDragStartX = 0;
+    let recDragStartY = 0;
+    let recDialogStartLeft = 0;
+    let recDialogStartTop = 0;
+
+    // ---- DOM refs ----
+    const questionModeSelect   = document.getElementById("question-mode");
+    const behavioralTypeWrapper = document.getElementById("behavioral-type-wrapper");
+    const behavioralTypeSelect = document.getElementById("behavioral-type-select");
+    const projectEntryWrapper  = document.getElementById("project-entry-wrapper");
+    const projectEntrySelect   = document.getElementById("project-entry-select");
+    const customQuestionPanel  = document.getElementById("custom-question-panel");
+    const customQuestionText   = document.getElementById("custom-question-text");
+    const customQuestionBtn    = document.getElementById("custom-question-btn");
+
+    const questionTagSpan      = document.getElementById("question-type-tag");
+    const questionIndexSpan    = document.getElementById("question-index");
+    const chatThread           = document.getElementById("chat-thread");
+    const userAnswerTextarea   = document.getElementById("user-answer");
+    const bulletHintsList      = document.getElementById("bullet-hints");
+
+    const nextQuestionBtn      = document.getElementById("next-question-btn");
+    const generateAnswerBtn    = document.getElementById("generate-answer-btn");
+    const toggleSampleBtn      = document.getElementById("toggle-sample-btn");
+    const saveAnswerBtn        = document.getElementById("save-answer-btn");
+    const sampleBox            = document.getElementById("sample-answer-box");
+    const followupQuestionBtn  = document.getElementById("followup-question-btn");
+
+    const historyList          = document.getElementById("history-list");
+    const historyPanel         = document.getElementById("history-panel");
+    const historyToggleBtn     = document.getElementById("history-toggle-btn");
+    const historyToggleRow     = document.getElementById("history-toggle");
+
+    const sampleHintText       = document.getElementById("sample-hint-text");
+    const sampleAnswerText     = document.getElementById("sample-answer-text");
+    const sampleRationaleText  = document.getElementById("sample-rationale-text");
+
+    const coachChatThread      = document.getElementById("coach-chat-thread");
+    const coachInput           = document.getElementById("coach-input");
+    const coachSendBtn         = document.getElementById("coach-send-btn");
+    const coachLauncher        = document.getElementById("coach-launcher");
+    const coachChatWrapper     = document.getElementById("coach-chat-wrapper");
+    const coachChatClose       = document.getElementById("coach-chat-close");
+
+    const progressChip         = document.getElementById("progress-chip");
+    const progressText         = document.getElementById("progress-text");
+
+    // Recording summary + modal DOM
+    const openRecorderBtn        = document.getElementById("open-recorder-btn");
+    const recordingSummary       = document.getElementById("recording-summary");
+    const recordingSummaryMeta   = document.getElementById("recording-summary-meta");
+    const recordingPlaybackAudio = document.getElementById("recording-playback-audio");
+    const recordingPlaybackVideo = document.getElementById("recording-playback-video");
+
+    const recorderModal   = document.getElementById("recorder-modal");
+    const recDialog       = recorderModal ? recorderModal.querySelector(".rec-modal-dialog") : null;
+    const recModeAudioBtn = document.getElementById("rec-mode-audio");
+    const recModeVideoBtn = document.getElementById("rec-mode-video");
+    const recPreviewVideo = document.getElementById("rec-preview-video");
+    const recAudioPlaceholder = document.getElementById("rec-audio-placeholder");
+    const recStartBtn     = document.getElementById("rec-start-btn");
+    const recStopBtn      = document.getElementById("rec-stop-btn");
+    const recCloseBtn     = document.getElementById("rec-close-btn");
+    const recTimerSpan    = document.getElementById("rec-timer");
+    const recStatusSpan   = document.getElementById("rec-status");
+
+    let PROJECT_ENTRIES = [];
+    let COACH_CHAT_HISTORY = [];
+    let LAST_SAMPLE_ANSWER = "";
+
+    // ---- Status helper ----
+    function setProgress(statusClass, text) {
+      if (progressChip) {
+        progressChip.className = "status-chip " + statusClass;
+      }
+      if (progressText) {
+        progressText.textContent = text;
+      }
+    }
+
+    function generateThreadId() {
+      return "thread-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+    }
+
+    function updateFollowupButtonState() {
+      if (!followupQuestionBtn || !userAnswerTextarea) return;
+      const typed = userAnswerTextarea.value.trim();
+      const hasTyped = typed.length > 0;
+      const hasSaved = CURRENT_LAST_ANSWER && CURRENT_LAST_ANSWER.trim().length > 0;
+
+      if (CURRENT_QUESTION && !FOLLOWUP_DONE && (hasTyped || hasSaved)) {
+        followupQuestionBtn.disabled = false;
+      } else {
+        followupQuestionBtn.disabled = true;
+      }
+    }
+
+    if (followupQuestionBtn) {
+      followupQuestionBtn.disabled = true;
+    }
+    if (userAnswerTextarea && followupQuestionBtn) {
+      userAnswerTextarea.addEventListener("input", () => {
+        updateFollowupButtonState();
+      });
+    }
+
+    // Coach launcher open/close
+    if (coachLauncher && coachChatWrapper) {
+      coachLauncher.addEventListener("click", () => {
+        coachChatWrapper.style.display = "block";
+      });
+    }
+    if (coachChatClose && coachChatWrapper) {
+      coachChatWrapper.addEventListener("click", () => {
+        coachChatWrapper.style.display = "none";
+      });
+    }
+
+    // ============================================================
+    // Recording helpers (modal)
+    // ============================================================
+    function formatTime(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+      const s = String(totalSec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function setRecorderStatus(msg, isRecording) {
+      if (recStatusSpan) {
+        recStatusSpan.textContent = msg || "";
+      }
+    }
+
+    function resetRecorderState(keepStream) {
+      if (recTimerId) {
+        clearInterval(recTimerId);
+        recTimerId = null;
+      }
+      recStartTime = null;
+      recChunks = [];
+
+      if (recStartBtn) recStartBtn.disabled = false;
+      if (recStopBtn) recStopBtn.disabled = true;
+
+      if (recTimerSpan) recTimerSpan.textContent = "00:00";
+      if (recStatusSpan) recStatusSpan.textContent = "";
+
+      if (!keepStream && recMediaStream) {
+        recMediaStream.getTracks().forEach((t) => t.stop());
+        recMediaStream = null;
+      }
+
+      if (!keepStream && REC_MODE === "video" && recPreviewVideo) {
+        recPreviewVideo.srcObject = null;
+      }
+
+      recMediaRecorder = null;
+    }
+
+    function centerRecorderDialog() {
+      if (!recDialog || recorderModal.classList.contains("hidden")) return;
+
+      recDialog.style.left = "auto";
+      recDialog.style.top = "auto";
+
+      const rect = recDialog.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const left = Math.max(16, (vw - rect.width) / 2);
+      const top  = Math.max(16, (vh - rect.height) / 2);
+
+      recDialog.style.left = left + "px";
+      recDialog.style.top  = top + "px";
+    }
+
+    function setupRecorderDragging() {
+      if (!recDialog) return;
+      const header = recDialog.querySelector(".rec-modal-header");
+      if (!header) return;
+
+      header.style.cursor = "move";
+
+      header.onmousedown = (e) => {
+        isRecDragging = true;
+        recDialog.classList.add("dragging");
+        recDragStartX = e.clientX;
+        recDragStartY = e.clientY;
+
+        const rect = recDialog.getBoundingClientRect();
+        recDialogStartLeft = rect.left;
+        recDialogStartTop  = rect.top;
+
+        document.addEventListener("mousemove", onRecDragMove);
+        document.addEventListener("mouseup", onRecDragEnd);
+      };
+
+      function onRecDragMove(e) {
+        if (!isRecDragging) return;
+        const dx = e.clientX - recDragStartX;
+        const dy = e.clientY - recDragStartY;
+
+        let newLeft = recDialogStartLeft + dx;
+        let newTop  = recDialogStartTop + dy;
+
+        const margin = 8;
+        const maxLeft = window.innerWidth  - margin;
+        const maxTop  = window.innerHeight - margin;
+
+        newLeft = Math.min(Math.max(newLeft, margin - recDialog.offsetWidth), maxLeft);
+        newTop  = Math.min(Math.max(newTop,  margin - recDialog.offsetHeight), maxTop);
+
+        recDialog.style.left = newLeft + "px";
+        recDialog.style.top  = newTop  + "px";
+      }
+
+      function onRecDragEnd() {
+        if (!isRecDragging) return;
+        isRecDragging = false;
+        recDialog.classList.remove("dragging");
+        document.removeEventListener("mousemove", onRecDragMove);
+        document.removeEventListener("mouseup", onRecDragEnd);
+      }
+    }
+
+    async function ensureVideoPreviewStream() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setRecorderStatus("Your browser does not support recording.", false);
+        return;
+      }
+
+      try {
+        if (!recMediaStream) {
+          recMediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: { width: 1280, height: 720 },
+          });
+        }
+        if (recPreviewVideo) {
+          recPreviewVideo.srcObject = recMediaStream;
+        }
+        if (recAudioPlaceholder) {
+          recAudioPlaceholder.classList.add("hidden");
+        }
+        if (recPreviewVideo) {
+          recPreviewVideo.classList.remove("hidden");
+        }
+        setRecorderStatus("Camera is on. Click Start when you're ready.", false);
+      } catch (err) {
+        console.error("ensureVideoPreviewStream error", err);
+        setRecorderStatus("Camera / microphone permission denied or unavailable.", false);
+      }
+    }
+
+    function setRecMode(mode) {
+      REC_MODE = mode === "audio" ? "audio" : "video";
+
+      if (REC_MODE === "audio") {
+        recModeAudioBtn.classList.add("active");
+        recModeVideoBtn.classList.remove("active");
+
+        if (recAudioPlaceholder) recAudioPlaceholder.classList.remove("hidden");
+        if (recPreviewVideo) {
+          recPreviewVideo.classList.add("hidden");
+          recPreviewVideo.srcObject = null;
+        }
+        if (recMediaStream) {
+          recMediaStream.getTracks().forEach((t) => t.stop());
+          recMediaStream = null;
+        }
+        setRecorderStatus("Audio-only mode selected.", false);
+      } else {
+        recModeAudioBtn.classList.remove("active");
+        recModeVideoBtn.classList.add("active");
+        if (!recorderModal.classList.contains("hidden")) {
+          ensureVideoPreviewStream();
+        }
+      }
+
+      resetRecorderState(true);
+    }
+
+    function openRecorderModal() {
+      if (!recorderModal) return;
+      recorderModal.classList.remove("hidden");
+
+      const recQ = document.getElementById("rec-current-question");
+      if (recQ) {
+        recQ.textContent = `${questionIndexSpan.textContent} – ${CURRENT_QUESTION}`;
+      }
+
+      setRecMode(REC_MODE);
+      centerRecorderDialog();
+      setupRecorderDragging();
+      window.addEventListener("resize", centerRecorderDialog);
+
+      if (REC_MODE === "video") {
+        ensureVideoPreviewStream();
+      } else {
+        setRecorderStatus("Audio-only mode. Click Start when you're ready.", false);
+      }
+      resetRecorderState(true);
+    }
+
+    function closeRecorderModal() {
+      if (!recorderModal) return;
+
+      if (recMediaRecorder && recMediaRecorder.state === "recording") {
+        try { recMediaRecorder.stop(); } catch (e) {}
+      }
+      resetRecorderState(false);
+      if (recMediaStream) {
+        recMediaStream.getTracks().forEach((t) => t.stop());
+        recMediaStream = null;
+      }
+      if (recPreviewVideo) {
+        recPreviewVideo.srcObject = null;
+      }
+      recorderModal.classList.add("hidden");
+      window.removeEventListener("resize", centerRecorderDialog);
+    }
+
+    async function startRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setRecorderStatus("Your browser does not support recording.", false);
+        return;
+      }
+
+      try {
+        resetRecorderState(true);
+        if (recStartBtn) recStartBtn.disabled = true;
+        if (recStopBtn) recStopBtn.disabled = false;
+
+        if (REC_MODE === "audio") {
+          if (!recMediaStream) {
+            recMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          }
+          if (recPreviewVideo) {
+            recPreviewVideo.srcObject = null;
+          }
+        } else {
+          if (!recMediaStream) {
+            await ensureVideoPreviewStream();
+          }
+        }
+
+        const mime = REC_MODE === "audio" ? "audio/webm" : "video/webm";
+        recMediaRecorder = new MediaRecorder(recMediaStream, { mimeType: mime });
+        const thisRecordingMode = REC_MODE;
+        recChunks = [];
+
+        recMediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) recChunks.push(e.data);
+        };
+
+        recMediaRecorder.onstop = () => {
+          const blob = new Blob(recChunks, { type: mime });
+
+          // 存成這一題要上傳的 media
+          currentMediaBlob = blob;
+          currentMediaMeta = {
+            type: thisRecordingMode === "audio" ? "audio" : "video",
+            durationMs: recStartTime ? (Date.now() - recStartTime) : null,
+          };
+
+          if (lastRecordingUrl) {
+            URL.revokeObjectURL(lastRecordingUrl);
+          }
+          lastRecordingUrl = URL.createObjectURL(blob);
+          lastRecordingType = thisRecordingMode;
+          lastRecordingDurationMs = recStartTime ? Date.now() - recStartTime : null;
+
+          if (recordingSummary) recordingSummary.classList.remove("hidden");
+          if (recordingSummaryMeta) {
+            const dur = lastRecordingDurationMs ? formatTime(lastRecordingDurationMs) : "";
+            recordingSummaryMeta.textContent =
+              `${thisRecordingMode === "audio" ? "Audio" : "Video"} · ${dur}`;
+          }
+
+          if (thisRecordingMode === "audio") {
+            recordingPlaybackAudio.classList.remove("hidden");
+            recordingPlaybackAudio.src = lastRecordingUrl;
+            recordingPlaybackVideo.classList.add("hidden");
+            recordingPlaybackVideo.src = "";
+          } else {
+            recordingPlaybackVideo.classList.remove("hidden");
+            recordingPlaybackVideo.src = lastRecordingUrl;
+            recordingPlaybackAudio.classList.add("hidden");
+            recordingPlaybackAudio.src = "";
+          }
+
+          if (recPreviewVideo) {
+            recPreviewVideo.srcObject = null;
+          }
+          if (recMediaStream) {
+            recMediaStream.getTracks().forEach((t) => t.stop());
+            recMediaStream = null;
+          }
+
+          setRecorderStatus("Recording saved.", false);
+          if (recStartBtn) recStartBtn.disabled = false;
+          if (recStopBtn) recStopBtn.disabled = true;
+          if (recTimerId) {
+            clearInterval(recTimerId);
+            recTimerId = null;
+          }
+          if (recTimerSpan) recTimerSpan.textContent = "00:00";
+
+          closeRecorderModal();
+        };
+
+        recMediaRecorder.start();
+        recStartTime = Date.now();
+        setRecorderStatus("Recording…", true);
+
+        if (recTimerId) clearInterval(recTimerId);
+        recTimerId = setInterval(() => {
+          if (!recStartTime) return;
+          const elapsed = Date.now() - recStartTime;
+          if (recTimerSpan) recTimerSpan.textContent = formatTime(elapsed);
+        }, 500);
+      } catch (err) {
+        console.error("startRecording error", err);
+        setRecorderStatus("Permission denied or device unavailable.", false);
+        if (recStartBtn) recStartBtn.disabled = false;
+        if (recStopBtn) recStopBtn.disabled = true;
+        if (recMediaStream) {
+          recMediaStream.getTracks().forEach((t) => t.stop());
+          recMediaStream = null;
+        }
+      }
+    }
+
+    // 🔥 按 Stop 時現在會立刻結束錄影模式
+    function stopRecording() {
+      if (!recMediaRecorder || recMediaRecorder.state !== "recording") return;
+
+      recMediaRecorder.stop();
+      setRecorderStatus("Finishing recording…", false);
+
+      if (recStopBtn) recStopBtn.disabled = true;
+
+      if (recTimerId) {
+        clearInterval(recTimerId);
+        recTimerId = null;
+      }
+      if (recTimerSpan) {
+        recTimerSpan.textContent = "00:00";
+      }
+
+      if (recMediaStream) {
+        recMediaStream.getTracks().forEach((t) => t.stop());
+        recMediaStream = null;
+      }
+      if (recPreviewVideo) {
+        recPreviewVideo.srcObject = null;
+      }
+    }
+
+    // ============================================================
+    // Suggested bullets
+    // ============================================================
+    function renderBulletHints(bullets) {
+      bulletHintsList.innerHTML = "";
+
+      if (!bullets || !bullets.length) {
+        const li = document.createElement("li");
+        li.textContent = "No suggested bullets. You can still answer from your experience.";
+        bulletHintsList.appendChild(li);
+        return;
+      }
+
+      const grouped = {};
+      bullets.forEach((b) => {
+        const entryTitle = b.entry || "General";
+        if (!grouped[entryTitle]) grouped[entryTitle] = [];
+        grouped[entryTitle].push(b);
+      });
+
+      Object.entries(grouped).forEach(([entryTitle, list]) => {
+        const li = document.createElement("li");
+
+        const entryHeader = document.createElement("div");
+        entryHeader.className = "small-label";
+        entryHeader.textContent = entryTitle;
+        li.appendChild(entryHeader);
+
+        list.forEach((b) => {
+          const row = document.createElement("label");
+          row.className = "bullet-hint-row";
+
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.dataset.section = b.section || "";
+          cb.dataset.entry = b.entry || entryTitle;
+          cb.dataset.text = b.text || "";
+
+          const span = document.createElement("span");
+          span.textContent = b.text || "";
+
+          row.appendChild(cb);
+          row.appendChild(span);
+          li.appendChild(row);
+        });
+
+        bulletHintsList.appendChild(li);
+      });
+    }
+
+    // ============================================================
+    // Floating coach chat
+    // ============================================================
+    function appendCoachBubble(role, text) {
+      if (!coachChatThread) return;
+      const row = document.createElement("div");
+      row.className = "chat-row " + (role === "assistant" ? "chat-row-assistant" : "chat-row-user");
+
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble";
+
+      const p = document.createElement("p");
+      p.textContent = text;
+      bubble.appendChild(p);
+
+      row.appendChild(bubble);
+      coachChatThread.appendChild(row);
+      coachChatThread.scrollTop = coachChatThread.scrollHeight;
+    }
+
+    async function sendCoachMessage() {
+      const msg = coachInput.value.trim();
+      if (!msg) return;
+
+      if (!CURRENT_QUESTION) {
+        setProgress("status-error", "No active question. Click 'Next question' first.");
+        return;
+      }
+
+      appendCoachBubble("user", msg);
+      COACH_CHAT_HISTORY.push({ role: "user", content: msg });
+      coachInput.value = "";
+
+      const selectedBullets = [];
+      document
+        .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+        .forEach((cb) => {
+          selectedBullets.push({
+            section: cb.dataset.section,
+            entry: cb.dataset.entry,
+            text: cb.dataset.text,
+          });
+        });
+
+      const payload = {
+        profile_id: PROFILE_ID,
+        mode: CURRENT_MODE,
+        question: CURRENT_QUESTION,
+        user_message: msg,
+        sample_answer: LAST_SAMPLE_ANSWER || null,
+        bullets: selectedBullets.length ? selectedBullets : null,
+        history: COACH_CHAT_HISTORY,
+      };
+
+      setProgress("status-loading", `Q${QUESTION_COUNT} · Coach is thinking…`);
+
+      try {
+        const resp = await fetch("/api/coach_chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          console.error("coach_chat failed", resp.status, await resp.text());
+          setProgress("status-error", "Coach chat failed.");
+          return;
+        }
+
+        const data = await resp.json();
+        const reply = data.reply || "(No reply)";
+
+        COACH_CHAT_HISTORY.push({ role: "assistant", content: reply });
+        appendCoachBubble("assistant", reply);
+
+        setProgress("status-success", `Q${QUESTION_COUNT} · Coach replied`);
+      } catch (err) {
+        console.error(err);
+        setProgress("status-error", "Coach chat error.");
+      }
+    }
+
+    if (coachSendBtn) {
+      coachSendBtn.addEventListener("click", sendCoachMessage);
+    }
+
+    // ============================================================
+    // Project entries
+    // ============================================================
+    async function loadProjectEntriesOnce() {
+      if (PROJECT_ENTRIES.length > 0) return;
+      try {
+        const resp = await fetch(`/api/profile_entries/${PROFILE_ID}`);
+        if (!resp.ok) {
+          console.error("Failed to load profile entries", resp.status);
+          return;
+        }
+        const data = await resp.json();
+        PROJECT_ENTRIES = (data.entries || []);
+
+        projectEntrySelect.innerHTML = "";
+        const opt0 = document.createElement("option");
+        opt0.value = "";
+        opt0.textContent = "Select an entry…";
+        projectEntrySelect.appendChild(opt0);
+
+        const MAX_LABEL_LEN = 60;
+        PROJECT_ENTRIES.forEach((item) => {
+          const opt = document.createElement("option");
+          opt.value = item.entry_key;
+          let label = item.label || "";
+          if (label.length > MAX_LABEL_LEN) {
+            opt.textContent = label.slice(0, MAX_LABEL_LEN) + "…";
+          } else {
+            opt.textContent = label;
+          }
+          opt.title = label;
+          projectEntrySelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // ============================================================
+    // Question card
+    // ============================================================
+    function createQuestionCard(tag, qIndex, questionText) {
+      // 先把舊的 current 卡片降級成 previous（淡灰）
+      if (currentQuestionCard) {
+        currentQuestionCard.classList.remove("practice-question-card-current");
+        currentQuestionCard.classList.add("practice-question-card-previous");
+      }
+
+      const card = document.createElement("div");
+      card.className = "practice-question-card practice-question-card-current";
+
+      const header = document.createElement("div");
+      header.className = "practice-question-card-header";
+
+      const tagSpan = document.createElement("span");
+      tagSpan.className = "question-tag";
+      tagSpan.textContent = tag || "Question";
+
+      const idxSpan = document.createElement("span");
+      idxSpan.className = "question-counter";
+      idxSpan.textContent = "Q" + qIndex;
+
+      header.appendChild(tagSpan);
+      header.appendChild(idxSpan);
+      card.appendChild(header);
+
+      const qBlock = document.createElement("div");
+      qBlock.className = "practice-question-card-section";
+      const qLabel = document.createElement("div");
+      qLabel.className = "small-label";
+      qLabel.textContent = "Question";
+      const qP = document.createElement("p");
+      qP.textContent = questionText;
+      qBlock.appendChild(qLabel);
+      qBlock.appendChild(qP);
+      card.appendChild(qBlock);
+
+      const feedbackBlock = document.createElement("div");
+      feedbackBlock.className = "practice-question-card-section";
+      feedbackBlock.innerHTML = `
+        <div class="small-label">Coach feedback</div>
+        <p class="feedback-placeholder">
+          No feedback yet. Type your answer and click "Save answer".
+        </p>
+      `;
+      card.appendChild(feedbackBlock);
+
+      card._feedbackBlock = feedbackBlock;
+
+      // ✅ 最新題目插在最上面，而不是最下面
+      if (chatThread.firstChild) {
+        chatThread.insertBefore(card, chatThread.firstChild);
+      } else {
+        chatThread.appendChild(card);
+      }
+      chatThread.scrollTop = 0;
+
+      // 更新目前高亮卡片指標
+      currentQuestionCard = card;
+
+      return card;
+    }
+
+    // ============================================================
+    // Load next question
+    // ============================================================
+    async function loadNextQuestion() {
+      const prevAnswer =
+        CURRENT_MODE === "project"
+          ? (userAnswerTextarea.value.trim() || null)
+          : null;
+
+      setProgress("status-loading", `Q${QUESTION_COUNT + 1} · Loading question…`);
+      userAnswerTextarea.value = "";
+
+      sampleBox.classList.add("blurred");
+      sampleHintText.textContent =
+        "Hint will appear here after you generate a sample answer.";
+      sampleAnswerText.textContent =
+        'Sample answer will appear here after you click "Generate sample answer".';
+      sampleRationaleText.textContent =
+        "The coach's explanation will show here.";
+      toggleSampleBtn.textContent = "Hide / Reveal";
+
+      // 換題時把上一題錄音清掉
+      currentMediaBlob = null;
+      currentMediaMeta = null;
+      if (recordingSummary) recordingSummary.classList.add("hidden");
+      recordingPlaybackAudio.classList.add("hidden");
+      recordingPlaybackAudio.src = "";
+      recordingPlaybackVideo.classList.add("hidden");
+      recordingPlaybackVideo.src = "";
+
+      const payload = {
+        profile_id: PROFILE_ID,
+        mode: CURRENT_MODE,
+        behavioral_type:
+          CURRENT_MODE === "behavioral" && CURRENT_BEHAVIORAL_TYPE !== "random"
+            ? CURRENT_BEHAVIORAL_TYPE
+            : (CURRENT_MODE === "behavioral" ? "random" : null),
+        entry_key: CURRENT_MODE === "project" ? CURRENT_ENTRY_KEY : null,
+        prev_answer: prevAnswer,
+      };
+
+      try {
+        const resp = await fetch("/api/next_question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          console.error("next_question failed", resp.status, await resp.text());
+          setProgress("status-error", "Failed to load question.");
+          return;
+        }
+
+        const data = await resp.json();
+        CURRENT_QUESTION = data.question || "";
+        QUESTION_COUNT += 1;
+
+        CURRENT_BASE_QUESTION = CURRENT_QUESTION;
+        CURRENT_THREAD_ID = generateThreadId();
+        CURRENT_IS_FOLLOWUP = false;
+        FOLLOWUP_DONE = false;
+        CURRENT_LAST_ANSWER = "";
+
+        updateFollowupButtonState();
+
+        const tagText = data.tag || "Question";
+        questionTagSpan.textContent = tagText;
+        questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
+
+        currentQuestionCard = createQuestionCard(tagText, QUESTION_COUNT, CURRENT_QUESTION);
+        renderBulletHints(data.bullets || []);
+        setProgress("status-idle", `Q${QUESTION_COUNT} · Ready`);
+      } catch (err) {
+        console.error(err);
+        setProgress("status-error", "Error loading question.");
+      }
+    }
+
+    // ============================================================
+    // Practice history（保留原函式，但 panel 不再會被打開）
+    // ============================================================
+    async function loadPracticeHistory() {
+      if (!historyList) return;
+      historyList.innerHTML = "<li>Loading...</li>";
+
+      try {
+        const resp = await fetch(`/api/practice_history/${PROFILE_ID}`);
+        if (!resp.ok) {
+          historyList.innerHTML = "<li>Failed to load history.</li>";
+          return;
+        }
+        const data = await resp.json();
+        const turns = data.turns || [];
+
+        if (!turns.length) {
+          historyList.innerHTML = "<li>No history yet.</li>";
+          return;
+        }
+
+        historyList.innerHTML = "";
+
+        const order = ["project", "auto", "behavioral", "technical", "case", "custom"];
+        const grouped = {};
+        turns.forEach((t) => {
+          const m = t.mode || "auto";
+          if (!grouped[m]) grouped[m] = [];
+          grouped[m].push(t);
+        });
+
+        order.forEach((m) => {
+          if (!grouped[m] || !grouped[m].length) return;
+
+          const header = document.createElement("li");
+          header.className = "history-item history-item-header";
+          header.textContent =
+            m === "auto" ? "Auto questions" :
+            m === "behavioral" ? "Behavioral questions" :
+            m === "project" ? "Project deep dive" :
+            m === "technical" ? "Technical questions" :
+            m === "case" ? "Case reasoning questions" :
+            "Custom questions";
+          historyList.appendChild(header);
+
+          grouped[m]
+            .slice()
+            .reverse()
+            .forEach((t) => {
+              const li = document.createElement("li");
+              li.className = "history-item";
+
+              const title = document.createElement("div");
+              title.className = "history-title";
+              title.textContent = t.question || "(No question)";
+
+              const meta = document.createElement("div");
+              meta.className = "history-meta";
+              const ts = t.timestamp ? t.timestamp.slice(0, 19).replace("T", " ") : "";
+              const score = (t.score !== undefined && t.score !== null)
+                ? ` · Score ${t.score}/10`
+                : "";
+              meta.textContent = `${ts}${score}`;
+
+              li.appendChild(title);
+              li.appendChild(meta);
+
+              li.addEventListener("click", () => {
+                const q  = t.question || "";
+                const ua = t.user_answer || "(No saved user answer)";
+                const sa = t.sample_answer || "(No sample answer)";
+                const sc = (t.score !== undefined && t.score !== null)
+                  ? `${t.score}/10`
+                  : "N/A";
+
+                sampleBox.classList.remove("blurred");
+                sampleHintText.textContent = `Question: ${q}`;
+                sampleAnswerText.textContent = `Sample answer: ${sa}`;
+                sampleRationaleText.textContent =
+                  `Your answer: ${ua}  ·  Score: ${sc}`;
+
+                toggleSampleBtn.textContent = "Hide answer";
+                setProgress("status-idle", "Viewing past practice");
+              });
+
+              historyList.appendChild(li);
+            });
+        });
+      } catch (err) {
+        console.error(err);
+        historyList.innerHTML = "<li>Error loading history.</li>";
+      }
+    }
+
+    // ============================================================
+    // Stats
+    // ============================================================
+    async function loadPracticeStats() {
+      const box = document.getElementById("stats-summary");
+      if (!box) return;
+      try {
+        const resp = await fetch(`/api/practice_stats/${PROFILE_ID}`);
+        if (!resp.ok) {
+          box.querySelector("p").textContent = "No stats yet.";
+          return;
+        }
+        const data = await resp.json();
+        const by = data.by_mode || {};
+        box.querySelector("p").textContent =
+          `Total ${data.total} · auto ${by.auto || 0}, ` +
+          `behavioral ${by.behavioral || 0}, project ${by.project || 0}, ` +
+          `technical ${by.technical || 0}, case ${by.case || 0}`;
+      } catch (e) {
+        box.querySelector("p").textContent = "Failed to load stats.";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadPracticeStats();
+      loadPracticeHistory();
+      loadNextQuestion();
+    });
+
+    // ============================================================
+    // Follow-up question
+    // ============================================================
+    async function askFollowupQuestion() {
+      if (!CURRENT_QUESTION || !CURRENT_BASE_QUESTION) {
+        setProgress("status-error", "No active question. Click 'Next question' first.");
+        return;
+      }
+      if (FOLLOWUP_DONE) {
+        setProgress("status-idle", "No more follow-up questions for this topic.");
+        return;
+      }
+
+      const typed = userAnswerTextarea.value.trim();
+      const baseAnswer = typed || (CURRENT_LAST_ANSWER ? CURRENT_LAST_ANSWER.trim() : "");
+
+      if (!baseAnswer) {
+        setProgress("status-error", "Type your answer before asking a follow-up.");
+        updateFollowupButtonState();
+        return;
+      }
+
+      const selectedBullets = [];
+      document
+        .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+        .forEach((cb) => {
+          selectedBullets.push({
+            section: cb.dataset.section,
+            entry: cb.dataset.entry,
+            text: cb.dataset.text,
+          });
+        });
+
+      const payload = {
+        profile_id: PROFILE_ID,
+        mode: CURRENT_MODE,
+        base_question: CURRENT_BASE_QUESTION,
+        user_answer: baseAnswer,
+        thread_id: CURRENT_THREAD_ID,
+        entry_key: CURRENT_MODE === "project" ? CURRENT_ENTRY_KEY : null,
+        bullets: selectedBullets.length ? selectedBullets : null,
+      };
+
+      setProgress("status-loading", `Q${QUESTION_COUNT + 1} · Loading follow-up…`);
+
+      try {
+        const resp = await fetch("/api/followup_question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          console.error("followup_question failed", resp.status, await resp.text());
+          setProgress("status-error", "Failed to load follow-up question.");
+          return;
+        }
+
+        const data = await resp.json();
+
+        if (data.done || !data.question) {
+          FOLLOWUP_DONE = true;
+          updateFollowupButtonState();
+          setProgress("status-idle", data.message || "No more follow-up questions.");
+          return;
+        }
+
+        CURRENT_QUESTION = data.question || "";
+        QUESTION_COUNT += 1;
+        CURRENT_IS_FOLLOWUP = true;
+        CURRENT_THREAD_ID = data.thread_id || CURRENT_THREAD_ID;
+
+        CURRENT_LAST_ANSWER = "";
+
+        const tagText = data.tag || "Follow-up";
+        questionTagSpan.textContent = tagText;
+        questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
+
+        currentQuestionCard = createQuestionCard(tagText, QUESTION_COUNT, CURRENT_QUESTION);
+        renderBulletHints(data.bullets || []);
+        userAnswerTextarea.value = "";
+
+        updateFollowupButtonState();
+        setProgress("status-idle", `Q${QUESTION_COUNT} · Follow-up ready`);
+      } catch (err) {
+        console.error(err);
+        setProgress("status-error", "Error loading follow-up question.");
+      }
+    }
+
+    if (followupQuestionBtn) {
+      followupQuestionBtn.addEventListener("click", askFollowupQuestion);
+    }
+
+    // ============================================================
+    // Generate sample answer
+    // ============================================================
+    async function generateSampleAnswer() {
+      if (!CURRENT_QUESTION) {
+        setProgress("status-error", "No question yet.");
+        return;
+      }
+
+      const selectedBullets = [];
+      document
+        .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+        .forEach((cb) => {
+          selectedBullets.push({
+            section: cb.dataset.section,
+            entry: cb.dataset.entry,
+            text: cb.dataset.text,
+          });
+        });
+
+      const userText = userAnswerTextarea.value.trim() || null;
+
+      const payload = {
+        profile_id: PROFILE_ID,
+        question: CURRENT_QUESTION,
+        mode: CURRENT_MODE,
+        behavioral_type:
+          CURRENT_MODE === "behavioral" && CURRENT_BEHAVIORAL_TYPE !== "random"
+            ? CURRENT_BEHAVIORAL_TYPE
+            : (CURRENT_MODE === "behavioral" ? "random" : null),
+        entry_key: CURRENT_MODE === "project" ? CURRENT_ENTRY_KEY : null,
+        user_answer: userText,
+        bullets: selectedBullets.length ? selectedBullets : null,
+        thread_id: CURRENT_THREAD_ID,
+        is_followup: CURRENT_IS_FOLLOWUP,
+      };
+
+      setProgress("status-loading", `Q${QUESTION_COUNT} · Generating sample answer…`);
+
+      try {
+        const resp = await fetch("/api/generate_sample_answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          console.error("generate_sample_answer failed", resp.status, await resp.text());
+          setProgress("status-error", "Failed to generate sample answer.");
+          return;
+        }
+
+        const data = await resp.json();
+        const answerText    = data.answer    || "(No answer returned)";
+        const hintText      = data.hint      || "No hint returned.";
+        const rationaleText = data.rationale || "No rationale returned.";
+
+        sampleBox.classList.add("blurred");
+        sampleHintText.textContent      = hintText;
+        sampleAnswerText.textContent    = answerText;
+        sampleRationaleText.textContent = rationaleText;
+        toggleSampleBtn.textContent     = "Hide / Reveal";
+
+        LAST_SAMPLE_ANSWER = answerText;
+        COACH_CHAT_HISTORY = [];
+        coachChatThread.innerHTML = "";
+
+        setProgress("status-success", `Q${QUESTION_COUNT} · Sample answer ready`);
+      } catch (err) {
+        console.error(err);
+        setProgress("status-error", "Error generating sample answer.");
+      }
+    }
+
+    // ============================================================
+    // Mode / buttons
+    // ============================================================
+    questionModeSelect.addEventListener("change", () => {
+      CURRENT_MODE = questionModeSelect.value;
+
+      if (CURRENT_MODE === "behavioral") {
+        behavioralTypeWrapper.style.display = "block";
+        projectEntryWrapper.style.display = "none";
+        customQuestionPanel.style.display = "none";
+      } else if (CURRENT_MODE === "project") {
+        behavioralTypeWrapper.style.display = "none";
+        projectEntryWrapper.style.display = "block";
+        customQuestionPanel.style.display = "none";
+        loadProjectEntriesOnce();
+      } else if (CURRENT_MODE === "custom") {
+        behavioralTypeWrapper.style.display = "none";
+        projectEntryWrapper.style.display = "none";
+        customQuestionPanel.style.display = "block";
+      } else {
+        // auto / technical / case
+        behavioralTypeWrapper.style.display = "none";
+        projectEntryWrapper.style.display = "none";
+        customQuestionPanel.style.display = "none";
+      }
+
+      userAnswerTextarea.value = "";
+
+      CURRENT_BASE_QUESTION = "";
+      CURRENT_THREAD_ID = null;
+      CURRENT_IS_FOLLOWUP = false;
+      FOLLOWUP_DONE = false;
+      CURRENT_LAST_ANSWER = "";
+
+      updateFollowupButtonState();
+
+      if (CURRENT_MODE !== "custom") {
+        loadNextQuestion();
+      } else {
+        setProgress("status-idle",
+          "Custom mode · Type your question."
+        );
+      }
+    });
+
+    behavioralTypeSelect.addEventListener("change", () => {
+      CURRENT_BEHAVIORAL_TYPE = behavioralTypeSelect.value;
+      if (CURRENT_MODE === "behavioral") {
+        QUESTION_COUNT = 0;
+        chatThread.innerHTML = "";
+        currentQuestionCard = null;
+        loadNextQuestion();
+      }
+    });
+
+    projectEntrySelect.addEventListener("change", () => {
+      CURRENT_ENTRY_KEY = projectEntrySelect.value || null;
+      if (CURRENT_MODE === "project" && CURRENT_ENTRY_KEY) {
+        QUESTION_COUNT = 0;
+        chatThread.innerHTML = "";
+        currentQuestionCard = null;
+        loadNextQuestion();
+      }
+    });
+
+    nextQuestionBtn.addEventListener("click", () => {
+      loadNextQuestion();
+    });
+
+    generateAnswerBtn.addEventListener("click", () => {
+      generateSampleAnswer();
+    });
+
+    toggleSampleBtn.addEventListener("click", () => {
+      if (sampleBox.classList.contains("blurred")) {
+        sampleBox.classList.remove("blurred");
+        toggleSampleBtn.textContent = "Hide answer";
+      } else {
+        sampleBox.classList.add("blurred");
+        toggleSampleBtn.textContent = "Hide / Reveal";
+      }
+    });
+
+    // Custom question flow
+    customQuestionBtn.addEventListener("click", async () => {
+      if (CURRENT_MODE !== "custom") {
+        questionModeSelect.value = "custom";
+        questionModeSelect.dispatchEvent(new Event("change"));
+      }
+
+      const qText = customQuestionText.value.trim();
+      if (!qText) {
+        setProgress("status-error", "Please type your custom question first.");
+        return;
+      }
+
+      CURRENT_QUESTION = qText;
+      QUESTION_COUNT += 1;
+
+      CURRENT_BASE_QUESTION = CURRENT_QUESTION;
+      CURRENT_THREAD_ID = generateThreadId();
+      CURRENT_IS_FOLLOWUP = false;
+      FOLLOWUP_DONE = false;
+      CURRENT_LAST_ANSWER = "";
+
+      updateFollowupButtonState();
+
+      questionTagSpan.textContent = "Custom";
+      questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
+
+      currentQuestionCard = createQuestionCard("Custom", QUESTION_COUNT, CURRENT_QUESTION);
+      userAnswerTextarea.value = "";
+      setProgress("status-loading", `Q${QUESTION_COUNT} · Fetching suggested bullets…`);
+
+      try {
+        const resp = await fetch("/api/retrieve_bullets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profile_id: PROFILE_ID,
+            question: CURRENT_QUESTION,
+          }),
+        });
+
+        if (!resp.ok) {
+          console.error("retrieve_bullets failed", resp.status, await resp.text());
+          renderBulletHints([]);
+          setProgress("status-idle",
+            `Q${QUESTION_COUNT} · Custom question ready (no bullets)`
+          );
+          return;
+        }
+
+        const data = await resp.json();
+        renderBulletHints(data.bullets || []);
+        setProgress("status-idle", `Q${QUESTION_COUNT} · Custom question ready`);
+      } catch (err) {
+        console.error(err);
+        renderBulletHints([]);
+        setProgress("status-error",
+          `Q${QUESTION_COUNT} · Custom question ready (error loading bullets)`
+        );
+      }
+    });
+
+    // History 點擊整排 → 直接導到 history 頁
+    if (historyToggleRow) {
+      historyToggleRow.addEventListener("click", () => {
+        window.location.href = "{{ request.url_for('practice_history_page', profile_id=profile_id) }}";
+      });
+    }
+
+    // ============================================================
+    // Save & score answer
+    // ============================================================
+    if (saveAnswerBtn) {
+      saveAnswerBtn.addEventListener("click", async () => {
+        if (!CURRENT_QUESTION) {
+          setProgress("status-error", "No question to save answer for.");
+          return;
+        }
+
+        const userText = userAnswerTextarea.value.trim();
+        const hasText = userText.length > 0;
+        const hasMedia = !!currentMediaBlob;
+
+        if (!hasText && !hasMedia) {
+          setProgress("status-error", "Type your answer or record audio/video before saving.");
+          return;
+        }
+
+        if (hasText) {
+          CURRENT_LAST_ANSWER = userText;
+        }
+
+        const selectedBullets = [];
+        document
+          .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+          .forEach((cb) => {
+            selectedBullets.push({
+              section: cb.dataset.section,
+              entry: cb.dataset.entry,
+              text: cb.dataset.text,
+            });
+          });
+
+        const metaPayload = {
+          profile_id: PROFILE_ID,
+          question: CURRENT_QUESTION,
+          mode: CURRENT_MODE,
+          behavioral_type:
+            CURRENT_MODE === "behavioral" && CURRENT_BEHAVIORAL_TYPE !== "random"
+              ? CURRENT_BEHAVIORAL_TYPE
+              : (CURRENT_MODE === "behavioral" ? "random" : null),
+          entry_key: CURRENT_MODE === "project" ? CURRENT_ENTRY_KEY : null,
+          user_answer: hasText ? userText : null,
+          bullets: selectedBullets.length ? selectedBullets : null,
+          thread_id: CURRENT_THREAD_ID,
+          is_followup: CURRENT_IS_FOLLOWUP,
+          sample_answer: LAST_SAMPLE_ANSWER || null,
+          media_meta: currentMediaMeta || null,
+        };
+
+        const formData = new FormData();
+        formData.append("meta", JSON.stringify(metaPayload));
+        if (hasMedia) {
+          formData.append(
+            "media",
+            currentMediaBlob,
+            `answer-${Date.now()}.webm`
+          );
+        }
+
+        if (hasMedia && !hasText) {
+          setProgress(
+            "status-loading",
+            `Q${QUESTION_COUNT} · Uploading & transcribing recording…`
+          );
+        } else if (hasMedia && hasText) {
+          setProgress(
+            "status-loading",
+            `Q${QUESTION_COUNT} · Uploading recording & scoring answer…`
+          );
+        } else {
+          setProgress(
+            "status-loading",
+            `Q${QUESTION_COUNT} · Saving & scoring answer…`
+          );
+        }
+
+        try {
+          const resp = await fetch("/api/save_user_answer_with_media", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!resp.ok) {
+            console.error("save_user_answer_with_media failed", resp.status, await resp.text());
+            setProgress("status-error", "Failed to save answer.");
+            return;
+          }
+
+          const data = await resp.json();
+          const score        = data.score;
+          const strengths    = data.strengths || "";
+          const improvements = data.improvements || "";
+
+          const transcript   = data.transcript || "";
+          let effectiveAnswer = userText;
+
+          if (!effectiveAnswer && transcript) {
+            effectiveAnswer = transcript;
+            userAnswerTextarea.value = transcript;
+            CURRENT_LAST_ANSWER = transcript;
+          } else if (effectiveAnswer) {
+            CURRENT_LAST_ANSWER = effectiveAnswer;
+          }
+
+          if (currentQuestionCard && currentQuestionCard._feedbackBlock) {
+            const block = currentQuestionCard._feedbackBlock;
+            block.innerHTML = "";
+
+            const yourLabel = document.createElement("div");
+            yourLabel.className = "small-label";
+            yourLabel.textContent = "Your answer";
+
+            const yourP = document.createElement("p");
+            if (effectiveAnswer) {
+              yourP.textContent = effectiveAnswer;
+            } else if (hasMedia) {
+              yourP.textContent = "(Recording only — transcript not available.)";
+            } else {
+              yourP.textContent = "(No text answer.)";
+            }
+
+            const coachLabel = document.createElement("div");
+            coachLabel.className = "small-label";
+            coachLabel.textContent = "Coach feedback";
+
+            const scoreP = document.createElement("p");
+            if (score !== undefined && score !== null) {
+              scoreP.innerHTML = `I'd rate this answer <strong>${score}/10.</strong>`;
+            } else if (effectiveAnswer) {
+              scoreP.textContent = "No score yet.";
+            } else {
+              scoreP.textContent = "No score yet (no text answer).";
+            }
+
+            block.appendChild(yourLabel);
+            block.appendChild(yourP);
+            block.appendChild(coachLabel);
+            block.appendChild(scoreP);
+
+            if (strengths) {
+              const sLabel = document.createElement("p");
+              sLabel.innerHTML = "<strong>What you did well:</strong>";
+              const sText = document.createElement("p");
+              sText.textContent = strengths;
+              block.appendChild(sLabel);
+              block.appendChild(sText);
+            }
+
+            if (improvements) {
+              const iLabel = document.createElement("p");
+              iLabel.innerHTML = "<strong>How you can improve:</strong>";
+              const iText = document.createElement("p");
+              iText.textContent = improvements;
+              block.appendChild(iLabel);
+              block.appendChild(iText);
+            }
+          }
+
+          if (score !== undefined && score !== null) {
+            if (transcript && !userText) {
+              setProgress(
+                "status-success",
+                `Q${QUESTION_COUNT} · Transcribed & scored (${score}/10)`
+              );
+            } else {
+              setProgress(
+                "status-success",
+                `Q${QUESTION_COUNT} · Answer saved & scored (${score}/10)`
+              );
+            }
+          } else if (transcript) {
+            setProgress(
+              "status-success",
+              `Q${QUESTION_COUNT} · Recording transcribed (no score)`
+            );
+          } else {
+            setProgress(
+              "status-success",
+              `Q${QUESTION_COUNT} · Recording saved (no text score yet)`
+            );
+          }
+
+          updateFollowupButtonState();
+          loadPracticeStats();
+          loadPracticeHistory();
+
+          currentMediaBlob = null;
+          currentMediaMeta = null;
+        } catch (err) {
+          console.error(err);
+          setProgress("status-error", "Error · Please try again");
+        }
+      });
+    }
+
+    // ============================================================
+    // Recording button bindings
+    // ============================================================
+    if (openRecorderBtn) {
+      openRecorderBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openRecorderModal();
+      });
+    }
+    if (recModeAudioBtn) {
+      recModeAudioBtn.addEventListener("click", () => setRecMode("audio"));
+    }
+    if (recModeVideoBtn) {
+      recModeVideoBtn.addEventListener("click", () => setRecMode("video"));
+    }
+    if (recStartBtn) {
+      recStartBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        startRecording();
+      });
+    }
+    if (recStopBtn) {
+      recStopBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        stopRecording();
+      });
+    }
+    if (recCloseBtn) {
+      recCloseBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        closeRecorderModal();
+      });
+    }
+    if (recorderModal) {
+      recorderModal.addEventListener("click", (e) => {
+        if (e.target === recorderModal) {
+          closeRecorderModal();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

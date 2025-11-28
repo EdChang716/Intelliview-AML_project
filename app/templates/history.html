@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Practice history – {{ profile_id }}</title>
+
+  <!-- 全局樣式 -->
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/history.css" />
+  <link rel="stylesheet" href="/static/global-nav.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* =============== Page layout tweaks =============== */
+
+    .history-page-container {
+      margin-top: 24px;
+      padding-bottom: 40px;
+    }
+
+    /* Summary row */
+    .history-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .summary-badge {
+      padding: 10px 16px;
+      border-radius: 16px;
+      background: #f9fafb;
+      min-width: 120px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+      border: 1px solid #e5e7eb;
+    }
+
+    .summary-badge .small-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+    }
+
+    .summary-number {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+      color: #111827;
+    }
+
+    /* Top row: 3 small bar charts */
+    .history-charts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .chart-card {
+      background: #ffffff;
+      padding: 14px 14px 12px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+      border: 1px solid #e5e7eb;
+    }
+
+    .chart-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .chart-title-row .small-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+    }
+
+    .chart-card canvas {
+      max-height: 150px;   /* 小 bar plot 不要太高 */
+    }
+
+    /* Bottom: wide score chart */
+    .score-trend-wrapper {
+      margin-top: 20px;
+    }
+
+    .score-card {
+      padding: 16px 18px 14px;
+    }
+
+    .score-card canvas {
+      max-height: 260px;   /* 折線圖高度比原本小一點 */
+    }
+
+    .small-select {
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    /* ====== Answer media / text toggle ====== */
+
+    .answer-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .answer-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      font-size: 12px;
+      color: #374151;
+      cursor: pointer;
+      transition: background 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+
+    .answer-toggle-btn:hover {
+      background: #edf2ff;
+      border-color: #c7d2fe;
+      box-shadow: 0 1px 3px rgba(129, 140, 248, 0.25);
+    }
+
+    .answer-toggle-btn:active {
+      transform: translateY(0.5px);
+    }
+
+    .answer-panel {
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      padding: 8px 10px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .answer-panel.hidden {
+      display: none;
+    }
+
+    .answer-panel audio,
+    .answer-panel video {
+      width: 100%;
+      max-height: 220px;
+      margin-bottom: 6px;
+    }
+
+    .answer-text {
+      font-size: 13px;
+      color: #111827;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      text-align: left;
+    }
+
+    .answer-empty {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .cell-text {
+      white-space: pre-wrap;
+      line-height: 1.35;
+    }
+
+    /* ====== New: practice turn cards ====== */
+
+    .turns-list {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .turn-card {
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      padding: 12px 14px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+      text-align: left;   /* 避免整張卡片被其他樣式置中 */
+    }
+
+    .turn-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .turn-meta {
+      font-size: 12px;
+      color: #6b7280;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .turn-mode-pill,
+    .turn-type-pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      font-size: 11px;
+      color: #4b5563;
+    }
+
+    .turn-score-badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      color: #4b5563;
+      white-space: nowrap;
+    }
+
+    /* 依分數上色：低 / 中 / 高 */
+    .turn-score-badge.score-low {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #b91c1c;
+    }
+
+    .turn-score-badge.score-mid {
+      background: #fffbeb;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
+
+    .turn-score-badge.score-high {
+      background: #ecfdf3;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+
+    .turn-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.4fr); /* 左邊多一點空間給 question */
+      gap: 16px;
+      margin-top: 8px;
+      align-items: flex-start; /* 問題 & 答案頂端對齊 */
+    }
+
+    .turn-body > div {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .turn-question-label,
+    .turn-answer-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-bottom: 4px;
+      text-align: left;
+    }
+
+    /* ---- Question text (always full) ---- */
+    .turn-question-text {
+      font-size: 13px;
+      color: #111827;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+
+    @media (max-width: 900px) {
+      .turn-body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    /* RWD：窄螢幕時 bar charts 變成兩欄 / 一欄 */
+    @media (max-width: 1100px) {
+      .history-charts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 800px) {
+      .history-charts-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+        <a href="#" class="nav-disabled">Practice</a>
+      </nav>
+    </header>
+
+    <main class="history-page-container">
+
+      <!-- Header -->
+      <section class="page-header page-header-with-switch">
+        <div>
+          <h1>Practice history</h1>
+          <p class="page-subtitle">
+            Full practice history for profile <code>{{ profile_id }}</code>.
+          </p>
+        </div>
+
+        <!-- Profile 切換選單 -->
+        <div class="profile-switcher">
+          <label for="profile-switch-select" class="small-label">Profile</label>
+          <select id="profile-switch-select" class="small-select">
+            {% for p in all_profiles %}
+              <option value="{{ p.profile_id }}"
+                {% if p.profile_id == profile_id %}selected{% endif %}
+              >
+                {{ p.company }} – {{ p.job_title }} ({{ p.profile_id }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </section>
+
+      <!-- Summary + charts -->
+      <section class="card">
+        {% set s = stats %}
+
+        <h2 class="section-title">Summary</h2>
+        <p class="section-subtitle">Overview of your interview practice so far.</p>
+
+        <!-- Summary row -->
+        <div class="history-summary">
+          <div class="summary-badge">
+            <div class="small-label">Total</div>
+            <div class="summary-number">{{ s.total }}</div>
+          </div>
+          <div class="summary-badge">
+            <div class="small-label">Auto</div>
+            <div class="summary-number">{{ s.by_mode.auto }}</div>
+          </div>
+          <div class="summary-badge">
+            <div class="small-label">Behavioral</div>
+            <div class="summary-number">{{ s.by_mode.behavioral }}</div>
+          </div>
+          <div class="summary-badge">
+            <div class="small-label">Project</div>
+            <div class="summary-number">{{ s.by_mode.project }}</div>
+          </div>
+          <div class="summary-badge">
+            <div class="small-label">Custom</div>
+            <div class="summary-number">{{ s.by_mode.custom }}</div>
+          </div>
+        </div>
+
+        <!-- Top row: 3 small bar charts -->
+        <p class="small-label" style="margin-top: 18px;">Visual breakdown</p>
+        <div class="history-charts-grid">
+
+          <div class="chart-card">
+            <div class="chart-title-row">
+              <span class="small-label">Questions by mode</span>
+            </div>
+            <canvas id="modeChart"></canvas>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title-row">
+              <span class="small-label">Behavioral by type</span>
+            </div>
+            <canvas id="behavioralChart"></canvas>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title-row">
+              <span class="small-label">Project by entry</span>
+            </div>
+            <canvas id="projectChart"></canvas>
+          </div>
+
+        </div>
+
+        <!-- Bottom: wide interactive score chart -->
+        <div class="score-trend-wrapper">
+          <div class="chart-card score-card">
+            <div class="chart-title-row">
+              <span class="small-label">Score trend over time</span>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <select id="score-mode-select" class="small-select">
+                  <option value="all" selected>All modes</option>
+                  <option value="auto">Auto</option>
+                  <option value="behavioral">Behavioral</option>
+                  <option value="project">Project</option>
+                  <option value="custom">Custom</option>
+                </select>
+                <select id="score-range-select" class="small-select">
+                  <option value="10">Last 10</option>
+                  <option value="30">Last 30</option>
+                  <option value="all" selected>All</option>
+                </select>
+              </div>
+            </div>
+            <canvas id="scoreTrendChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- History cards -->
+      <section class="card" style="margin-top: 24px;">
+        <h2 class="section-title">All practice turns</h2>
+        <p class="section-subtitle">Sorted by most recent.</p>
+
+        <div class="turns-list">
+          {% for t in turns|reverse %}
+            {% set media = t.media or {} %}
+            {% set has_media = media and media.filename %}
+            {% set has_text = t.user_answer %}
+            {% set panel_id = "answer-panel-" ~ loop.index %}
+            {% set qid = "question-text-" ~ loop.index %}
+
+            <article class="turn-card">
+              <!-- header：時間 / mode / type / score -->
+              <div class="turn-header">
+                <div class="turn-meta">
+                  <span class="col-time" data-timestamp="{{ t.timestamp }}">
+                    {{ t.timestamp[:19].replace("T"," ") if t.timestamp }}
+                  </span>
+
+                  {% if t.mode %}
+                    <span class="turn-mode-pill">{{ t.mode }}</span>
+                  {% endif %}
+
+                  {% if t.mode == "behavioral" %}
+                    <span class="turn-type-pill">
+                      {{ t.behavioral_type or "–" }}
+                    </span>
+                  {% elif t.mode == "project" %}
+                    <span class="turn-type-pill">
+                      {{ t.entry_key or "–" }}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <div class="turn-score-badge"
+                     {% if t.score is defined and t.score is not none %}
+                       data-score="{{ t.score }}"
+                     {% endif %}>
+                  {% if t.score is defined and t.score is not none %}
+                    Score: {{ t.score }}
+                  {% else %}
+                    Not scored
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- body：左 question，右 answer -->
+              <div class="turn-body">
+                <div>
+                  <div class="turn-question-label">Question</div>
+                  <div id="{{ qid }}" class="turn-question-text">{{ t.question }}</div>
+                </div>
+
+                <div>
+                  <div class="turn-answer-label">Your answer</div>
+                  <div class="answer-cell">
+                    {% if has_media or has_text %}
+                      {# 決定按鈕初始 label #}
+                      {% set label = "" %}
+                      {% if has_media and has_text %}
+                        {% set label = "Show recording & text" %}
+                      {% elif has_media and not has_text %}
+                        {% if media.type == "audio" %}
+                          {% set label = "Hear audio" %}
+                        {% else %}
+                          {% set label = "Show recording" %}
+                        {% endif %}
+                      {% elif has_text and not has_media %}
+                        {% set label = "Show text" %}
+                      {% endif %}
+
+                      <button
+                        type="button"
+                        class="answer-toggle-btn"
+                        data-target="{{ panel_id }}"
+                        data-open-label="Hide"
+                        data-close-label="{{ label|trim }}"
+                      >
+                        {{ label|trim }}
+                      </button>
+
+                      <div id="{{ panel_id }}" class="answer-panel hidden">
+                        {% if has_media %}
+                          {% if media.type == "audio" %}
+                            <audio
+                              controls
+                              preload="metadata"
+                              src="{{ request.url_for('media', path=media.filename) }}"
+                            >
+                              Your browser does not support the audio element.
+                            </audio>
+                          {% elif media.type == "video" %}
+                            <video
+                              controls
+                              preload="metadata"
+                              src="{{ request.url_for('media', path=media.filename) }}"
+                            >
+                              Your browser does not support the video element.
+                            </video>
+                          {% endif %}
+                        {% endif %}
+
+                        {% if has_text %}
+                          <div class="answer-text">{{ t.user_answer }}</div>
+                        {% endif %}
+                      </div>
+                    {% else %}
+                      <span class="answer-empty">–</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- JSON blobs for JS -->
+  <script id="stats-json" type="application/json">{{ stats|tojson }}</script>
+  <script id="turns-json" type="application/json">{{ turns|tojson }}</script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      /* ----- Format timestamps in local timezone ----- */
+      document.querySelectorAll(".col-time").forEach(td => {
+        const iso = td.dataset.timestamp;
+        if (!iso) return;
+        const d = new Date(iso);
+        if (!isNaN(d.getTime())) td.textContent = d.toLocaleString();
+      });
+
+      /* ----- Parse JSON from backend ----- */
+      let STATS = {};
+      let TURNS = [];
+
+      try { STATS = JSON.parse(document.getElementById("stats-json").textContent); }
+      catch { STATS = {}; }
+
+      try { TURNS = JSON.parse(document.getElementById("turns-json").textContent); }
+      catch { TURNS = []; }
+
+      /* ==========================
+         Chart 1 – Questions by mode
+      =========================== */
+      const modeCtx = document.getElementById("modeChart");
+      const byMode = STATS.by_mode || {};
+      new Chart(modeCtx, {
+        type: "bar",
+        data: {
+          labels: Object.keys(byMode),
+          datasets: [{ data: Object.values(byMode) }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+
+      /* ==========================
+         Chart 2 – Behavioral by type
+      =========================== */
+      const behCtx = document.getElementById("behavioralChart");
+      const beh = STATS.behavioral_by_type || {};
+      new Chart(behCtx, {
+        type: "bar",
+        data: {
+          labels: Object.keys(beh),
+          datasets: [{ data: Object.values(beh) }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+
+      /* ==========================
+         Chart 3 – Project by entry
+      =========================== */
+      const projCtx = document.getElementById("projectChart");
+      const proj = STATS.project_by_entry || {};
+      new Chart(projCtx, {
+        type: "bar",
+        data: {
+          labels: Object.keys(proj),
+          datasets: [{ data: Object.values(proj) }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                callback: function(v, i) {
+                  const label = this.getLabelForValue(i);
+                  return label.length > 16 ? label.slice(0,16) + "…" : label;
+                }
+              }
+            },
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+
+      /* ==========================
+         Chart 4 – Wide interactive score trend
+      =========================== */
+      const scoreCtx = document.getElementById("scoreTrendChart");
+      const rangeSelect = document.getElementById("score-range-select");
+      const modeSelect  = document.getElementById("score-mode-select");
+
+      // Extract only turns with scores, keep mode info for filtering
+      const scoredTurns = TURNS
+        .filter(t => t.score !== null && t.score !== undefined)
+        .map((t, idx) => {
+          const d = new Date(t.timestamp);
+          const label = !isNaN(d.getTime()) ? d.toLocaleString() : `Turn ${idx+1}`;
+          return {
+            date: d,
+            label,
+            score: Number(t.score),
+            mode: t.mode || "auto"
+          };
+        })
+        .sort((a, b) => a.date - b.date); // oldest → newest
+
+      function buildScoreSeries(rangeValue, modeFilter) {
+        // Filter by mode (auto / behavioral / project / custom / all)
+        let pts = scoredTurns.filter(p =>
+          modeFilter === "all" ? true : p.mode === modeFilter
+        );
+
+        // Then take last N if needed
+        if (rangeValue !== "all") {
+          const n = parseInt(rangeValue, 10);
+          if (pts.length > n) pts = pts.slice(-n);
+        }
+
+        return {
+          labels: pts.map(p => p.label),
+          data: pts.map(p => p.score)
+        };
+      }
+
+      const initialSeries = buildScoreSeries(rangeSelect.value, modeSelect.value);
+
+      const scoreChart = new Chart(scoreCtx, {
+        type: "line",
+        data: {
+          labels: initialSeries.labels,
+          datasets: [{
+            data: initialSeries.data,
+            tension: 0.25,
+            pointRadius: 4,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `Score: ${ctx.parsed.y}`
+              }
+            }
+          },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxTicksLimit: 6 } },
+            y: {
+              beginAtZero: true,
+              max: 10,
+              ticks: { stepSize: 1 }
+            }
+          }
+        }
+      });
+
+      function updateScoreChart() {
+        const series = buildScoreSeries(rangeSelect.value, modeSelect.value);
+        scoreChart.data.labels = series.labels;
+        scoreChart.data.datasets[0].data = series.data;
+        scoreChart.update();
+      }
+
+      rangeSelect.addEventListener("change", updateScoreChart);
+      modeSelect.addEventListener("change", updateScoreChart);
+
+      // ==========================
+      // Answer toggle buttons
+      // ==========================
+      document.querySelectorAll(".answer-toggle-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.dataset.target;
+          const panel = document.getElementById(targetId);
+          if (!panel) return;
+
+          const isHidden = panel.classList.contains("hidden");
+          const openLabel = btn.dataset.openLabel || "Hide";
+          const closeLabel = btn.dataset.closeLabel || "Show";
+
+          if (isHidden) {
+            panel.classList.remove("hidden");
+            btn.textContent = openLabel;
+          } else {
+            panel.classList.add("hidden");
+            btn.textContent = closeLabel;
+          }
+        });
+      });
+
+      // ==========================
+      // Score badge colors by value
+      // ==========================
+      document.querySelectorAll(".turn-score-badge[data-score]").forEach(badge => {
+        const val = parseFloat(badge.dataset.score);
+        if (isNaN(val)) return;
+        if (val <= 3) {
+          badge.classList.add("score-low");
+        } else if (val <= 7) {
+          badge.classList.add("score-mid");
+        } else {
+          badge.classList.add("score-high");
+        }
+      });
+
+      // ==========================
+      // Profile switcher
+      // ==========================
+      const profileSelect = document.getElementById("profile-switch-select");
+      if (profileSelect) {
+        profileSelect.addEventListener("change", (e) => {
+          const pid = e.target.value;
+          if (!pid) return;
+          const targetUrl = `/profiles/${encodeURIComponent(pid)}/history`;
+          window.location.href = targetUrl;
+        });
+      }
+    });
+  </script>
+</body>
+</html>

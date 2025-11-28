@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mock Interview – Intelliview Coach</title>
+
+  <!-- Global nav -->
+  <link rel="stylesheet" href="/static/global-nav.css" />
+  <!-- This page CSS -->
+  <link rel="stylesheet" href="/static/mock_interviews.css" />
+</head>
+
+<body>
+  <div class="app-container">
+
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+        <a href="{{ request.url_for('mock_settings_page') }}" class="nav-active">Mock</a>
+      </nav>
+    </header>
+
+    <main class="mock-main">
+      <!-- 題目 Banner：整頁最上面 -->
+      <section class="question-banner">
+        <div class="question-banner-inner">
+          <div class="question-banner-top">
+            <span class="question-tag" id="question-tag">Mock interview</span>
+            <!-- 之後如果要放 Track / Warm-up 都可以塞在這裡 -->
+            <span class="question-meta" id="question-meta"></span>
+          </div>
+          <div class="question-text" id="question-text">
+            When you’re ready, click <strong>Start interview</strong>.<br />
+            I’ll ask you questions one by one and record your answer for each.
+          </div>
+        </div>
+      </section>
+
+      <!-- 下方：左側錄影卡片 + 右側 hints -->
+      <section class="mock-layout">
+        <!-- 左邊：錄影區 -->
+        <section class="interview-container">
+          <div class="video-shell">
+            <div class="video-box">
+              <!-- 錄影狀態 pill -->
+              <div id="recording-pill" class="recording-pill recording-preview">
+                <span class="rec-dot"></span>
+                <span class="rec-text">Camera preview</span>
+              </div>
+              <video id="preview" autoplay muted playsinline></video>
+            </div>
+
+            <!-- 控制按鈕列 -->
+            <div class="controls">
+              <button id="start-btn" class="btn start-btn">Start interview</button>
+              <button id="next-btn" class="btn next-btn" disabled>Next question</button>
+              <button id="end-btn" class="btn end-btn" disabled>End interview</button>
+            </div>
+
+            <!-- Timer + 狀態列 -->
+            <div class="status-row">
+              <div class="timer-row" id="timer-row" style="display: none;">
+                <span class="timer-label">Time remaining</span>
+                <span class="timer-value" id="timer-value">--:--</span>
+              </div>
+              <p class="status-text" id="mock-status"></p>
+            </div>
+
+            <!-- REALTIME: debug 區塊顯示即時 transcript -->
+            <div class="status-row">
+              <span class="timer-label">Realtime transcript</span>
+              <span class="status-text" id="realtime-transcript"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 右邊：Coaching hints -->
+        <aside class="hints-panel" id="hints-panel">
+          <h3>Coaching hints</h3>
+          <div id="hints-container" class="hint-box">
+            <p class="hint-empty">
+              Once the interview starts, you’ll see structure tips and suggested bullets here.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 從後端來的 session 設定
+      const SESSION_CONFIG = JSON.parse('{{ session_config_json | safe }}');
+      const hintLevel    = SESSION_CONFIG.hint_level || "standard";
+      const lengthType   = SESSION_CONFIG.length_type || "questions"; // "questions" | "time"
+      const timeLimitMin = SESSION_CONFIG.time_limit;                 // 分鐘（可能為 null）
+
+      // ⭐ 從 session_config 拿 interviewer profile
+      const INTERVIEWER_PROFILE = SESSION_CONFIG.interviewer_profile || {};
+      const INTERVIEWER_GENDER =
+        INTERVIEWER_PROFILE.gender || "auto";
+
+      // 優先用 tts_persona，沒有的話用 role_resolved + style_resolved + extra_notes 拼一串
+      const INTERVIEWER_TTS_PERSONA =
+        INTERVIEWER_PROFILE.tts_persona ||
+        [
+          INTERVIEWER_PROFILE.role_resolved,
+          INTERVIEWER_PROFILE.style_resolved,
+          INTERVIEWER_PROFILE.extra_notes,
+        ].filter(Boolean).join(" ");
+
+      const qTagEl       = document.getElementById("question-tag");
+      const qTextEl      = document.getElementById("question-text");
+      const hintsPanel   = document.getElementById("hints-panel");
+      const hintsBox     = document.getElementById("hints-container");
+      const statusEl     = document.getElementById("mock-status");
+      const rtEl         = document.getElementById("realtime-transcript");
+
+      const startBtn     = document.getElementById("start-btn");
+      const nextBtn      = document.getElementById("next-btn");
+      const endBtn       = document.getElementById("end-btn");
+      const videoEl      = document.getElementById("preview");
+
+      const timerRow     = document.getElementById("timer-row");
+      const timerValue   = document.getElementById("timer-value");
+
+      const recordingPill = document.getElementById("recording-pill");
+      const recordingTextEl = recordingPill
+        ? recordingPill.querySelector(".rec-text")
+        : null;
+
+      // Timer 狀態（只在時間模式會用到）
+      let remainingSeconds = null;
+      let timerId = null;
+
+      // ---------- Utility ----------
+      function setStatus(msg) {
+        if (statusEl) statusEl.textContent = msg || "";
+      }
+
+      function setRecordingPill(mode, label) {
+        if (!recordingPill || !recordingTextEl) return;
+        recordingPill.className = "recording-pill recording-" + mode;
+        recordingTextEl.textContent = label;
+      }
+
+      function escapeHtml(str) {
+        if (!str) return "";
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatTime(totalSec) {
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        const mm = String(m).padStart(2, "0");
+        const ss = String(s).padStart(2, "0");
+        return `${mm}:${ss}`;
+      }
+
+      function startTimerIfNeeded() {
+        // 只在「時間模式」且有 time_limit 時啟動
+        if (lengthType !== "time" || !timeLimitMin) return;
+        if (!timerRow || !timerValue) return;
+
+        remainingSeconds = timeLimitMin * 60;
+        timerRow.style.display = "inline-flex";
+        timerValue.textContent = formatTime(remainingSeconds);
+
+        if (timerId) {
+          window.clearInterval(timerId);
+          timerId = null;
+        }
+
+        timerId = window.setInterval(() => {
+          remainingSeconds -= 1;
+          if (remainingSeconds < 0) remainingSeconds = 0;
+          timerValue.textContent = formatTime(remainingSeconds);
+
+          if (remainingSeconds === 0) {
+            window.clearInterval(timerId);
+            timerId = null;
+            // 不強制切掉目前這題，只是不再允許換新 main 題
+            setStatus("Time is up. Finish your current answer and click End interview.");
+            nextBtn.disabled = true;
+            startBtn.disabled = true;
+          }
+        }, 1000);
+      }
+
+      // ---------- TTS：問題自動播 ----------
+      let currentTtsAudio = null;
+
+      async function speakQuestion(text) {
+        const clean = (text || "").trim();
+        if (!clean) return;
+
+        try {
+          // 如果前一段還在播，先停掉
+          if (currentTtsAudio) {
+            try {
+              currentTtsAudio.pause();
+            } catch (e) {}
+            if (currentTtsAudio.src) {
+              URL.revokeObjectURL(currentTtsAudio.src);
+            }
+            currentTtsAudio = null;
+          }
+
+          const resp = await fetch("/api/tts_question", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              text: clean,
+              session_id: SESSION_CONFIG.session_id, 
+            }),
+          });
+
+          if (!resp.ok) {
+            console.error("TTS HTTP error:", resp.status, await resp.text());
+            return;
+          }
+
+          const blob = await resp.blob();
+          console.log("TTS blob size:", blob.size);
+
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          currentTtsAudio = audio;
+
+          audio.onended = () => {
+            if (audio.src) {
+              URL.revokeObjectURL(audio.src);
+            }
+            if (currentTtsAudio === audio) {
+              currentTtsAudio = null;
+            }
+          };
+
+          audio.play().catch((e) => {
+            console.warn("Audio play failed:", e);
+          });
+        } catch (e) {
+          console.error("TTS fetch error:", e);
+        }
+      }
+
+      // ---------- 錄影 / 音訊 / Realtime 狀態 ----------
+      let mediaStream = null;
+      let mediaRecorder = null;
+      let recordingChunks = [];
+
+      let currentQuestionIndex = -1;  // -1 = 還沒開始
+      let currentQuestion = null;     // { question_id, question, tag, bullets, hints, ... }
+
+      // REALTIME: audio + ws 狀態
+      let audioCtx = null;
+      let audioSource = null;
+      let audioProcessor = null;
+      let realtimeWS = null;
+      let realtimeEnabled = true;
+
+      // Realtime transcript：整場累積 + 單題累積
+      const TARGET_SR = 24000;                 // OpenAI realtime transcription 期望 24kHz
+      let globalTranscriptSoFar = "";          // 整場到目前為止的全文
+      let currentRealtimeTranscript = "";      // 目前這一題的 transcript（會上傳後端）
+
+      function floatTo16BitPCM(float32Array) {
+        const pcm16 = new Int16Array(float32Array.length);
+        for (let i = 0; i < float32Array.length; i++) {
+          let s = Math.max(-1, Math.min(1, float32Array[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+        return pcm16;
+      }
+
+      function arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+      }
+
+      // 簡單的 downsample：把 input (Float32) 從原本 sampleRate 壓到 targetSampleRate
+      function resampleToTarget(input, inputSampleRate, targetSampleRate) {
+        if (!input || input.length === 0) return input;
+        if (!inputSampleRate || inputSampleRate === targetSampleRate) {
+          return input;
+        }
+
+        const ratio = inputSampleRate / targetSampleRate;
+        const newLength = Math.floor(input.length / ratio);
+        const output = new Float32Array(newLength);
+
+        for (let i = 0; i < newLength; i++) {
+          const pos = i * ratio;
+          const idx = Math.floor(pos);
+          const frac = pos - idx;
+          const v0 = input[idx] ?? 0;
+          const v1 = input[idx + 1] ?? v0;
+          output[i] = v0 + (v1 - v0) * frac;  // linear interpolation
+        }
+        return output;
+      }
+
+      // 連線到你自己的 proxy WebSocket: ws://host/ws/mock_realtime
+      function setupRealtimeWebSocket() {
+        if (!realtimeEnabled) return;
+        if (realtimeWS && realtimeWS.readyState === WebSocket.OPEN) return;
+
+        const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${wsProtocol}://${window.location.host}/ws/mock_realtime`;
+
+        const ws = new WebSocket(wsUrl);
+        realtimeWS = ws;
+
+        ws.onopen = () => {
+          console.log("Realtime proxy WS opened:", wsUrl);
+        };
+
+        ws.onmessage = (event) => {
+          console.log("[Realtime WS message raw]:", event.data);
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === "transcript" && typeof msg.text === "string") {
+              const full = msg.text;
+
+              // 新增的片段 = 這次完整內容 - 上一次完整內容
+              const diff = full.slice(globalTranscriptSoFar.length);
+              globalTranscriptSoFar = full;
+
+              if (diff) {
+                currentRealtimeTranscript += diff;
+              }
+
+              console.log("Realtime full transcript:", full);
+              console.log("Current question transcript:", currentRealtimeTranscript);
+
+              if (rtEl) rtEl.textContent = currentRealtimeTranscript;
+            }
+          } catch (e) {
+            console.warn("Error parsing realtime WS message:", e);
+          }
+        };
+
+        ws.onerror = (e) => {
+          console.error("Realtime WS error:", e);
+        };
+
+        ws.onclose = () => {
+          console.log("Realtime proxy WS closed");
+        };
+      }
+
+      function setupAudioPipeline() {
+        try {
+          if (!mediaStream || !window.AudioContext) return;
+          if (audioCtx) return; // 已經設定過
+
+          const AC = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AC();
+
+          if (audioCtx.state === "suspended") {
+            audioCtx.resume().catch((e) => {
+              console.warn("AudioContext resume error:", e);
+            });
+          }
+
+          audioSource = audioCtx.createMediaStreamSource(mediaStream);
+          const bufferSize = 4096;
+          audioProcessor = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+
+          audioSource.connect(audioProcessor);
+          audioProcessor.connect(audioCtx.destination);
+
+          audioProcessor.onaudioprocess = (event) => {
+            if (!realtimeWS || realtimeWS.readyState !== WebSocket.OPEN) return;
+
+            const input = event.inputBuffer.getChannelData(0); // Float32 (likely 48kHz)
+            const inSampleRate = audioCtx.sampleRate || 48000;
+
+            // 🔹 先 downsample 到 24kHz
+            const resampled = resampleToTarget(input, inSampleRate, TARGET_SR);
+
+            // 再轉成 Int16 PCM
+            const pcm16 = floatTo16BitPCM(resampled);
+            const b64 = arrayBufferToBase64(pcm16.buffer);
+
+            const msg = {
+              type: "input_audio_buffer.append",
+              audio: b64,
+            };
+            try {
+              realtimeWS.send(JSON.stringify(msg));
+            } catch (e) {
+              console.warn("Failed to send audio chunk:", e);
+            }
+          };
+
+          console.log("Audio pipeline set up for realtime transcription. sampleRate =", audioCtx.sampleRate);
+        } catch (e) {
+          console.error("setupAudioPipeline error:", e);
+          realtimeEnabled = false;
+        }
+      }
+
+      // 只開 camera preview，不開始錄影
+      async function initCameraPreview() {
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.warn("getUserMedia not supported.");
+            setStatus("Camera preview not supported in this browser.");
+            setRecordingPill("error", "Camera unavailable");
+            return;
+          }
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,   // 要錄音
+          });
+          videoEl.srcObject = mediaStream;
+          setStatus("Camera is on. Click Start interview when you’re ready.");
+          setRecordingPill("preview", "Camera preview");
+
+          setupRealtimeWebSocket();  // REALTIME: 先開後端 proxy WS
+          setupAudioPipeline();      // REALTIME: 再把音訊串上去
+        } catch (err) {
+          console.error("Failed to init camera:", err);
+          setStatus("Failed to access camera / microphone.");
+          setRecordingPill("error", "Camera blocked");
+        }
+      }
+
+      await initCameraPreview();
+
+      // ---------- Hints rendering ----------
+      function renderHints(hints, suggestedBullets) {
+        // 完全沒有任何提示就把 panel 收掉
+        if (
+          (!hints || hints.show === false || hintLevel === "minimal") &&
+          (!suggestedBullets || !suggestedBullets.length)
+        ) {
+          hintsPanel.style.display = "none";
+          return;
+        }
+        hintsPanel.style.display = "block";
+
+        const bullets   = (hints && hints.bullets) || [];
+        const structure = (hints && hints.structure) || "";
+        const extra     = (hints && hints.extra) || "";
+
+        let html = "";
+
+        // 1) General tips
+        if (bullets.length) {
+          html += `
+            <div class="hint-section">
+              <h4>General tips</h4>
+              <ul>
+                ${bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}
+              </ul>
+            </div>
+          `;
+        }
+
+        // 2) Structure tip
+        if (structure) {
+          html += `
+            <div class="hint-section">
+              <h4>Structure tip</h4>
+              <p>${escapeHtml(structure)}</p>
+            </div>
+          `;
+        }
+
+        // 3) Extra guidance（只有 full 模式）
+        if (extra && hintLevel === "full") {
+          html += `
+            <div class="hint-section">
+              <h4>Extra guidance</h4>
+              <p>${escapeHtml(extra)}</p>
+            </div>
+          `;
+        }
+
+        // 4) 最後才放 Suggested bullets from your resume
+        if (suggestedBullets && suggestedBullets.length) {
+          html += `
+            <div class="hint-section">
+              <h4>Suggested bullets from your resume</h4>
+              <ul>
+                ${suggestedBullets
+                  .map((b) => {
+                    const entry = escapeHtml(b.entry || b.section || "");
+                    const text  = escapeHtml(b.text || "");
+                    if (entry) {
+                      return `<li><span class="hint-entry">[${entry}]</span> ${text}</li>`;
+                    }
+                    return `<li>${text}</li>`;
+                  })
+                  .join("")}
+              </ul>
+            </div>
+          `;
+        }
+
+        if (!html) {
+          html = "<p class='hint-empty'>No hints for this question.</p>";
+        }
+
+        hintsBox.innerHTML = html;
+      }
+
+      // ---------- 問題載入 ----------
+      async function fetchQuestion(index) {
+        setStatus(`Loading question ${index + 1}…`);
+
+        // 把 seconds_left 一起送給後端（只有 time mode 需要）
+        const payload = {
+          session_id: SESSION_CONFIG.session_id,
+          index,
+        };
+        if (lengthType === "time" && typeof remainingSeconds === "number") {
+          payload.seconds_left = remainingSeconds;
+        }
+
+        const resp = await fetch("/api/mock_next_question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        return data;
+      }
+
+      function renderQuestion(q, index) {
+        currentQuestionIndex = index;
+        currentQuestion = q;
+
+        const tagText = q.tag || "Question";
+        qTagEl.textContent  = `${tagText} · Q${index + 1}`;
+        qTextEl.textContent = q.question || "";
+
+        const suggestedBullets = q.bullets || [];
+        renderHints(q.hints || {}, suggestedBullets);
+
+        setStatus(`Question ${index + 1} loaded. Recording has started.`);
+
+        // 每一題開始時重置「這一題」的 transcript（整場全文仍繼續累積）
+        currentRealtimeTranscript = "";
+        if (rtEl) rtEl.textContent = "";
+
+        // 題目顯示完成後，直接開始唸
+        speakQuestion(q.question || "");
+      }
+
+      // ---------- 一題一錄：開始錄製 ----------
+      function startRecordingForCurrentQuestion() {
+        if (!mediaStream) {
+          setStatus("Camera / microphone not ready.");
+          return;
+        }
+        if (!currentQuestion) {
+          setStatus("No question loaded yet.");
+          return;
+        }
+
+        recordingChunks = [];
+        try {
+          mediaRecorder = new MediaRecorder(mediaStream, { mimeType: "video/webm" });
+        } catch (err) {
+          console.error("Failed to create MediaRecorder:", err);
+          setStatus("Recording is not supported in this browser.");
+          setRecordingPill("error", "Recording unavailable");
+          return;
+        }
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            // JS 陣列用 push，不是 append
+            recordingChunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.start();
+        setStatus(`Recording answer for Q${currentQuestionIndex + 1}…`);
+        setRecordingPill("recording", `Recording Q${currentQuestionIndex + 1}`);
+      }
+
+      // ---------- 停止錄製並上傳當前題目答案 ----------
+      function stopRecordingAndUploadCurrentAnswer() {
+        return new Promise((resolve) => {
+          if (!mediaRecorder || mediaRecorder.state !== "recording") {
+            resolve();
+            return;
+          }
+
+          mediaRecorder.onstop = async () => {
+            const blob = new Blob(recordingChunks, { type: "video/webm" });
+
+            try {
+              setStatus(`Saving your answer for Q${currentQuestionIndex + 1}…`);
+              setRecordingPill("uploading", `Saving Q${currentQuestionIndex + 1}…`);
+
+              const meta = {
+                session_id: SESSION_CONFIG.session_id,
+                index: currentQuestionIndex,
+                question_id: currentQuestion.question_id,
+                question_text: currentQuestion.question,
+              };
+
+              if (currentRealtimeTranscript && currentRealtimeTranscript.trim().length > 0) {
+                meta.realtime_transcript = currentRealtimeTranscript.trim();
+              }
+
+              const formData = new FormData();
+              formData.append("meta", JSON.stringify(meta));
+              formData.append("media", blob, `q${currentQuestionIndex + 1}.webm`);
+
+              const resp = await fetch("/api/mock_answer", {
+                method: "POST",
+                body: formData,
+              });
+              const data = await resp.json();
+              if (!resp.ok) {
+                console.error("mock_answer failed:", resp.status, data);
+                setStatus("Failed to save / transcribe this answer. I’ll still move to the next question.");
+                setRecordingPill("idle", "Answer not saved");
+              } else {
+                console.log("mock_answer ok:", data);
+                setStatus("Answer saved. Loading the next question…");
+                setRecordingPill("idle", "Answer saved");
+              }
+            } catch (err) {
+              console.error("Error uploading answer:", err);
+              setStatus("Error while uploading this answer. I’ll still move to the next question.");
+              setRecordingPill("idle", "Upload error");
+            }
+
+            resolve();
+          };
+
+          mediaRecorder.stop();
+        });
+      }
+
+      // ---------- Start interview ----------
+      startBtn.addEventListener("click", async () => {
+        if (!mediaStream) {
+          setStatus("Camera / microphone not ready.");
+          return;
+        }
+
+        try {
+          startBtn.disabled = true;
+          nextBtn.disabled = false;
+          endBtn.disabled = false;
+
+          setStatus("Loading your first question…");
+
+          const q = await fetchQuestion(0);
+          if (q.done) {
+            setStatus(q.message || "No questions available for this mock interview.");
+            nextBtn.disabled = true;
+            endBtn.disabled = true;
+            startBtn.disabled = false;
+            setRecordingPill("preview", "Camera preview");
+            return;
+          }
+
+          renderQuestion(q, 0);
+          startRecordingForCurrentQuestion();
+
+          // 啟動倒數（如果是時間模式）
+          startTimerIfNeeded();
+        } catch (err) {
+          console.error(err);
+          setStatus("Failed to start mock interview.");
+          startBtn.disabled = false;
+          nextBtn.disabled = true;
+          endBtn.disabled = true;
+          setRecordingPill("preview", "Camera preview");
+        }
+      });
+
+      // ---------- Next question ----------
+      nextBtn.addEventListener("click", async () => {
+        if (currentQuestionIndex < 0) return;
+
+        // 時間模式且時間已到 → 不再允許換新題
+        if (lengthType === "time" && remainingSeconds === 0) {
+          setStatus("Time is up. Please click End interview to finish.");
+          nextBtn.disabled = true;
+          return;
+        }
+
+        // 1) 停止錄製並上傳當前答案
+        await stopRecordingAndUploadCurrentAnswer();
+
+        const nextIndex = currentQuestionIndex + 1;
+
+        // 2) 題數模式：檢查是否達到預計題數（follow-up 不算在這個數字）
+        if (
+          lengthType === "questions" &&
+          SESSION_CONFIG.num_questions != null &&
+          nextIndex >= SESSION_CONFIG.num_questions
+        ) {
+          nextBtn.disabled = true;
+          setStatus("You’ve reached the planned number of questions. Click End interview to finish.");
+          return;
+        }
+
+        // 3) 載入下一題並開始新一輪錄影
+        try {
+          const q = await fetchQuestion(nextIndex);
+          if (q.done) {
+            nextBtn.disabled = true;
+            setStatus(q.message || "No more questions. Click End interview to finish.");
+            return;
+          }
+
+          renderQuestion(q, nextIndex);
+          startRecordingForCurrentQuestion();
+        } catch (err) {
+          console.error(err);
+          setStatus("Failed to load the next question.");
+        }
+      });
+
+      // ---------- End interview ----------
+      endBtn.addEventListener("click", async () => {
+        // 1) 停止最後一題錄製並上傳
+        await stopRecordingAndUploadCurrentAnswer();
+
+        startBtn.disabled = true;
+        nextBtn.disabled = true;
+        endBtn.disabled = true;
+        setStatus("Finalizing your mock interview…");
+        setRecordingPill("ended", "Interview finished");
+
+        const formData = new FormData();
+        formData.append("meta", JSON.stringify({
+          session_id: SESSION_CONFIG.session_id,
+        }));
+
+        try {
+          const resp = await fetch("/api/mock_finish", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await resp.json();
+          if (!resp.ok) {
+            console.error("mock_finish failed:", resp.status, data);
+            setStatus("Failed to finalize mock interview.");
+            return;
+          }
+
+          setStatus("Mock interview saved. Redirecting to your report…");
+
+          const url = `/profiles/${encodeURIComponent(
+            SESSION_CONFIG.profile_id
+          )}/mock_history/${encodeURIComponent(data.session_id)}`;
+          window.location.href = url;
+        } catch (err) {
+          console.error(err);
+          setStatus("Error while finalizing mock interview.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

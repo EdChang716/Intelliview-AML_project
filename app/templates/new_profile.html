@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>New Interview Profile – Intelliview Coach</title>
+
+  <!-- 共用 nav / 背景 -->
+  <link rel="stylesheet" href="/static/global-nav.css" />
+  <!-- 這頁自己的樣式 -->
+  <link rel="stylesheet" href="/static/new_profiles.css" />
+  
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+        <span class="nav-disabled">Practice</span>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Page header -->
+      <section class="page-header">
+        <h1>New interview profile</h1>
+        <p class="page-subtitle">
+          Link a job description to one of your resume versions. You can reuse the same
+          resume across multiple jobs.
+        </p>
+      </section>
+
+      <!-- Main card -->
+      <section class="card">
+        <h2 class="section-title">Profile details</h2>
+        <p class="section-subtitle">
+          Give this profile a memorable ID, pick a resume version, and paste the full job description.
+        </p>
+
+        <form id="new-profile-form" class="profile-form">
+          <div class="form-row">
+            <label class="field-group">
+              <span class="field-label">Profile ID</span>
+              <input
+                type="text"
+                id="profile-id-input"
+                placeholder="e.g. bcg_ds_2026"
+                required
+              />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Job title</span>
+              <input
+                type="text"
+                id="job-title-input"
+                placeholder="e.g. Data Science Intern"
+                required
+              />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label class="field-group">
+              <span class="field-label">Company</span>
+              <input
+                type="text"
+                id="company-input"
+                placeholder="e.g. BCG X"
+              />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Resume version</span>
+              <select id="resume-id-select" required>
+                <option value="" disabled selected>Select a resume version</option>
+                {% for rid in resume_ids %}
+                  <option value="{{ rid }}"
+                    {% if default_resume_id and rid == default_resume_id %}selected{% endif %}>
+                    {{ rid }}
+                  </option>
+                {% endfor %}
+              </select>
+              <small class="field-hint">
+                Need another resume version?
+                <a href="{{ request.url_for('resume_page') }}">Go to Resume setup</a>
+                and come back.
+              </small>
+            </label>
+          </div>
+
+          <div class="form-row full-width">
+            <label class="field-group">
+              <span class="field-label">Job description</span>
+              <textarea
+                id="jd-text-input"
+                class="jd-textarea"
+                placeholder="Paste the full job description here..."
+                required
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="button-row">
+            <a href="{{ request.url_for('profiles_page') }}" class="btn ghost-btn">
+              Cancel
+            </a>
+            <button type="submit" class="btn primary-btn">
+              Save profile
+            </button>
+          </div>
+
+          <p id="save-profile-status" class="status-text"></p>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById("new-profile-form");
+    const statusEl = document.getElementById("save-profile-status");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusEl.textContent = "Saving profile...";
+
+      const profileId = document.getElementById("profile-id-input").value.trim();
+      const jobTitle  = document.getElementById("job-title-input").value.trim();
+      const company   = document.getElementById("company-input").value.trim();
+      const resumeId  = document.getElementById("resume-id-select").value;
+      const jdText    = document.getElementById("jd-text-input").value.trim();
+
+      if (!profileId || !jobTitle || !resumeId || !jdText) {
+        statusEl.textContent = "Please fill in required fields.";
+        return;
+      }
+
+      const payload = {
+        profile_id: profileId,
+        job_title:  jobTitle,
+        company:    company || null,
+        jd_text:    jdText,
+        resume_id:  resumeId
+      };
+
+      try {
+        const resp = await fetch("/api/create_job_profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          statusEl.textContent = "Save failed: " + resp.statusText;
+          return;
+        }
+
+        const data = await resp.json();
+        statusEl.innerHTML =
+          `Profile saved. ` +
+          `<a href="/practice/${encodeURIComponent(data.profile_id)}" class="inline-link">
+             Start practice →
+           </a> or <a href="/profiles" class="inline-link">back to profiles</a>.`;
+
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error saving profile.";
+      }
+    });
+  </script>
+</body>
+</html>

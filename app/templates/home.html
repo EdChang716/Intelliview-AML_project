@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intelliview Coach – Interview Practice with Your Resume</title>
+
+  <!-- 只給首頁的樣式 -->
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/home.css" />
+  <link rel="stylesheet" href="/static/global-nav.css" />
+  
+</head>
+<body>
+
+  <!-- ========== TOP NAV (保留原本的) ========== -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <div class="logo-dot"></div>
+      <span class="logo-text">Intelliview&nbsp;Coach</span>
+    </div>
+
+    <nav class="nav-links">
+      <a href="/" class="nav-active">Home</a>
+      <a href="{{ request.url_for('resume_page') }}">Resume</a>
+      <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+      <a href="{{ request.url_for('mock_settings_page') }}">Mock Interview</a>
+    </nav>
+  </header>
+
+  <!-- ========== HOME MAIN ========== -->
+  <main class="home-main">
+
+    <!-- ========== Section 1: Hero ========== -->
+    <section class="home-hero">
+      <div class="home-container hero-layout">
+
+        <!-- Left copy -->
+        <div class="hero-copy">
+          <div class="hero-eyebrow">Interview practice, but actually personal.</div>
+
+          <h1 class="hero-title">AI-powered interview practice, personalized to you.</h1>
+
+          <p class="hero-subtitle">
+            Your resume + the job description = questions and answers tailored to your dream job
+            —so you can prepare like it’s the real interview.
+          </p>
+        </div>
+
+        <!-- Right mock UI -->
+        <div class="hero-media">
+          <div class="mock-panel">
+
+            <div class="mock-header">
+              <span class="mock-pill">Amazon · DS Intern</span>
+              <span class="mock-status">Practice session</span>
+            </div>
+
+            <div class="mock-body">
+              <div class="mock-question">
+                <div class="mock-label">Question</div>
+                <p>“Tell me about a time you used data to persuade stakeholders to change their decision.”</p>
+              </div>
+
+              <div class="mock-layout">
+                <div class="mock-answer-box">
+                  <div class="mock-label">Your answer</div>
+                  <div class="mock-input">Start typing or speaking your answer here…</div>
+                </div>
+
+                <div class="mock-sample-box">
+                  <div class="mock-label-row">
+                    <span class="mock-label">AI sample answer</span>
+                    <span class="mock-toggle">Tap to reveal</span>
+                  </div>
+
+                  <div class="mock-blur">
+                    <div class="mock-blur-line"></div>
+                    <div class="mock-blur-line"></div>
+                    <div class="mock-blur-line"></div>
+                    <div class="mock-blur-line"></div>
+                    <div class="mock-blur-line short"></div>
+                    <div class="mock-blur-line short"></div>
+                  </div>
+
+                  <div class="mock-hint">Uses your project and experience to personalize your story</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-footer">
+              <button class="btn small-btn mock-next-btn">Next question</button>
+              <span class="mock-progress">Q2 · Behavioral</span>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="hero-actions">
+            <a href="{{ request.url_for('resume_page') }}" 
+               class="btn primary-btn hero-cta">
+              Create new interview profile
+            </a>
+
+            <a href="{{ url_for('profiles_page') }}"
+              class="btn ghost-btn hero-secondary">
+              Browse past practice
+            </a>
+          </div>
+      </div>
+    </section>
+
+    <!-- ========== Section 2: Designed for real prep ========== -->
+    <section class="home-section home-designed">
+      <div class="home-container">
+        <div class="home-section-header">
+          <h2 class="home-section-title">Everything you need for realistic interview prep,<br /> powered by your own experience.</h2>
+          <p class="home-section-subtitle">
+            Intelliview Coach connects your resume, job descriptions, and practice history to help you turn your real experience into clear, confident interview stories.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h3>Resume-aware questions</h3>
+            <p>Every question is tailored to your resume and the specific job you’re applying for.</p>
+          </div>
+
+          <div class="feature-card">
+            <h3>RAG-powered sample answers</h3>
+            <p>Answers pull directly from your own bullet points to give you concrete, role-ready STAR stories.</p>
+          </div>
+
+          <div class="feature-card">
+            <h3>Deep-dive project mode</h3>
+            <p>Pick any project or experience and get follow-up questions like a real interviewer.</p>
+          </div>
+
+          <div class="feature-card">
+            <h3>Behavioral categories</h3>
+            <p>Practice leadership, ownership, conflict, and problem-solving questions by category.</p>
+          </div>
+
+          <div class="feature-card">
+            <h3>Conversation-style practice</h3>
+            <p>AI remembers your previous answers and asks follow-ups to simulate a real interview.</p>
+          </div>
+
+          <div class="feature-card">
+            <h3>Profiles for every application</h3>
+            <p>Organize your interview prep with dedicated profiles for each application.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Section 3: How it works ========== -->
+    <section class="home-section home-how">
+      <div class="home-container">
+        <div class="home-section-header">
+          <h2 class="home-section-title">How Intelliview Coach works</h2>
+          <p class="home-section-subtitle">
+            Real-time, personalized interview coaching tailored to your resume and job descriptions.
+          </p>
+        </div>
+
+        <div class="how-grid">
+          <div class="how-card">
+            <div class="how-card-media">
+              <div class="image-placeholder">IMAGE 1</div>
+            </div>
+            <h3>Resume Parsing</h3>
+            <p>Automatically extract structure and skills from your resume.</p>
+          </div>
+
+          <div class="how-card">
+            <div class="how-card-media">
+              <div class="image-placeholder">IMAGE 2</div>
+            </div>
+            <h3>Job-Aware Questioning</h3>
+            <p>Questions adapt to each job description you upload.</p>
+          </div>
+
+          <div class="how-card">
+            <div class="how-card-media">
+              <div class="image-placeholder">IMAGE 3</div>
+            </div>
+            <h3>Sample Answer Builder</h3>
+            <p>Uses RAG to generate answers grounded in your bullet points.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,224 @@
+/* =============== 全局：跟首頁一樣的背景 + 字體 =============== */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+}
+
+/* 全頁共用的淡藍漸層，只在 body 設一次 */
+body {
+  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
+    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+}
+
+/* 把中間大容器跟 header 的底色全部拿掉，避免出現「斷層」 */
+.app-container,
+main,
+.page-header {
+  background: transparent !important;
+}
+
+/* 整體寬度控制，跟首頁 home-container 一致感 */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 72px;
+}
+
+/* =============== Top nav：完全沿用首頁風格 =============== */
+
+/* ============================
+   TOP NAV — 深色 pill bar
+   ============================ */
+
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  max-width: 1200px;
+  margin: 16px auto 32px;
+  padding: 10px 20px;
+  box-sizing: border-box;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: rgba(6, 16, 40, 0.97);
+  border-radius: 999px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.6);
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-text {
+  font-weight: 600;
+  font-size: 15px;
+  color: #f9fafb;
+}
+
+.nav-links a {
+  margin-left: 24px;
+  text-decoration: none;
+  font-size: 14px;
+  color: #9ca3af;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-links a:hover {
+  color: #f9fafb;
+  background: rgba(148, 163, 184, 0.25);
+}
+
+/* 目前所在頁（在模板裡給 <a> 加 class="nav-active"） */
+.nav-links a.nav-active {
+  background: #f9fafb;
+  color: #0f172a;
+}
+
+/* =============== 頁首區（標題 + 步驟 pill） =============== */
+
+.page-header {
+  padding: 40px 0 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin: 0 0 20px;
+  font-size: 15px;
+  color: #4b5563;
+}
+
+.page-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.step-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  font-size: 13px;
+  color: #111827;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+/* =============== 卡片（Upload / Editor） =============== */
+
+.card {
+  margin-top: 28px;
+  padding: 24px 24px 28px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.section-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: #111827;
+}
+
+.section-subtitle {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* =============== 表單區 =============== */
+
+.upload-form {
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr;
+  gap: 16px 20px;
+  align-items: flex-end;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.upload-form input[type="text"],
+.upload-form input[type="file"] {
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.button-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* 主要按鈕，跟首頁 CTA 一致風格 */
+.btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 10px 22px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.45);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.55);
+}
+
+/* 其他（小按鈕、ghost-btn 等）延用你原本的 style.css 設定 */
+
+/* =============== RWD =============== */
+
+@media (max-width: 900px) {
+  .upload-form {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row {
+    justify-content: flex-start;
+  }
+
+  .page-header {
+    padding-top: 24px;
+  }
+}
+
+
+

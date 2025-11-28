@@ -1,0 +1,384 @@
+/* ============================
+   全域：字體、背景、容器
+   ============================ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  color: #111827;
+}
+
+/* 與首頁一致的淡藍漸層背景 */
+body {
+  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
+    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+}
+
+/* 中央主要寬度，類似 home-container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto 72px;
+  padding: 0 24px;
+}
+
+/* 主要內容區 */
+main {
+  padding-bottom: 40px;
+}
+
+/* ============================
+   頁首文字區（標題 + 副標）
+   ============================ */
+
+.page-header {
+  padding: 40px 0 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: #4b5563;
+}
+
+/* ============================
+   共用 card / button 樣式
+   ============================ */
+
+.card {
+  margin-top: 20px;
+  padding: 24px 24px 28px;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+/* profiles 區塊的 card 外框（只是語意 class，可視需要覆寫） */
+.profiles-card {
+  padding-top: 22px;
+}
+
+/* card 內部大標 / 小標 */
+.section-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.section-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* 按鈕基底，跟首頁 CTA 風格一樣 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+}
+
+/* 藍色主 CTA */
+.primary-btn {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.45);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.55);
+}
+
+/* 輕量連結型按鈕 */
+.link-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+/* ============================
+   profiles header 區（標題 + 新增按鈕）
+   ============================ */
+
+.profiles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.add-profile-btn {
+  font-size: 14px;
+}
+
+/* ============================
+   單欄 profile 列表 layout
+   ============================ */
+
+.profiles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 單個 profile card（全寬） */
+.profile-card {
+  width: 100%;
+  border-radius: 18px;
+  padding: 18px 20px 18px;
+  background: #f9fafb;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  border: 1px solid #e5e7eb;
+  box-sizing: border-box;
+}
+
+/* 標題列：左 job title / company, 右 resume tag */
+.profile-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.profile-title {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.profile-company {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* 右上角 resume id pill */
+.resume-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 中段 JD 摘要 + see more */
+.profile-body {
+  margin-top: 4px;
+}
+
+.profile-snippet {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+/* 底部：左邊 stats，右邊 Practice 按鈕 */
+.profile-footer {
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+/* stats 區 */
+.profile-stats {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.small-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.profile-stats-line {
+  margin: 0;
+}
+
+.profile-stats-line.sub {
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* history link 跟其他文字距離 */
+.profile-history-link {
+  display: inline-block;
+  margin-top: 6px;
+}
+
+/* 右下角 Practice 按鈕 */
+.profile-practice-btn {
+  align-self: flex-end;
+  padding-inline: 22px;
+}
+
+/* ============================
+   JD Modal（See more → 彈出視窗）
+   ============================ */
+
+.jd-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.jd-modal.hidden {
+  display: none;
+}
+
+.jd-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.jd-modal-box {
+  position: relative;
+  width: 600px;
+  max-width: calc(100% - 32px);
+  max-height: 75vh;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px 22px 22px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.jd-modal-box h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.jd-modal-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+  white-space: pre-wrap;
+}
+
+/* 關閉按鈕 */
+.jd-close {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+/* ============================
+   空狀態 hint
+   ============================ */
+
+.hint-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ============================
+   RWD 調整
+   ============================ */
+
+@media (max-width: 900px) {
+  .profiles-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-practice-btn {
+    align-self: stretch;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .jd-modal-box {
+    max-height: 80vh;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-header {
+    padding-top: 28px;
+  }
+
+  .page-header h1 {
+    font-size: 26px;
+  }
+}
+
+.profile-history-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.profile-history-link {
+  font-size: 13px;
+}
+
+.mock-history-link {
+  opacity: 0.9;
+}

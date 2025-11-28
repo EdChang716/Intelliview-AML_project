@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intelliview Coach – Resume Setup</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/resume.css" />
+  <link rel="stylesheet" href="/static/global-nav.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top nav，一樣的風格 -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}" class="nav-active">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}">Profiles</a>
+        <a href="{{ request.url_for('mock_settings_page') }}">Mock Interview</a>
+      </nav>
+    </header>
+
+    <!-- Page header -->
+    <main>
+      <section class="page-header">
+        <h1>Resume setup</h1>
+        <p class="page-subtitle">
+          Upload your resume, parse it into structured sections, and refine your experience
+          before practicing interviews.
+        </p>
+        <div class="page-steps">
+          <span class="step-pill">1 · Upload & parse</span>
+          <span class="step-pill">2 · Edit experience & education</span>
+          <span class="step-pill">3 · Build embeddings for RAG</span>
+        </div>
+      </section>
+
+      <!-- Step 1: Upload -->
+      <section class="card">
+        <h2 class="section-title">1. Upload Resume</h2>
+        <p class="section-subtitle">
+          Give this resume a name (e.g. <code>resume_DS</code>), then upload your PDF.
+        </p>
+        <form id="upload-form" class="upload-form">
+          <label class="field-group">
+            <span class="field-label">Profile ID</span>
+            <input type="text" id="project-id-input" name="project_id"
+                   placeholder="e.g. resume_DS" required />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Resume PDF</span>
+            <input type="file" id="resume-file-input" name="file"
+                   accept="application/pdf" required />
+          </label>
+          <div class="button-row">
+            <button type="submit" class="btn primary-btn">
+              Upload &amp; Parse
+            </button>
+          </div>
+        </form>
+        <p id="upload-status" class="status-text"></p>
+      </section>
+
+      <!-- Step 2: Editor -->
+      <section class="card" id="editor-section" style="display:none;">
+        <h2 class="section-title">2. Edit Parsed Resume</h2>
+        <p class="section-subtitle">
+          Adjust entries, bullets, and education. These will be used to build embeddings
+          for your interview practice.
+        </p>
+
+        <div class="editor-layout">
+          <!-- 左邊：Experience / Projects -->
+          <div class="editor-column">
+            <h3>Experience &amp; Projects</h3>
+            <div id="experience-container"></div>
+            <div class="button-row">
+              <button id="add-experience-btn" type="button" class="btn ghost-btn">
+                + Add Experience
+              </button>
+              <button id="add-project-btn" type="button" class="btn ghost-btn">
+                + Add Project
+              </button>
+            </div>
+          </div>
+
+          <!-- 右邊：Education + Skills / Courses tags -->
+          <div class="editor-column">
+            <h3>Education &amp; Profile</h3>
+
+            <!-- Education structured cards -->
+            <div id="education-container"></div>
+
+            <!-- Skills tags -->
+            <div class="tag-section">
+              <label class="block-label">Skills</label>
+              <div id="skills-tags" class="tag-container"></div>
+              <div class="tag-input-row">
+                <input id="new-skill-input" type="text"
+                       placeholder="Add a skill and press Enter" />
+                <button type="button" id="add-skill-btn" class="btn small-btn ghost-btn">
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Courses tags -->
+            <div class="tag-section">
+              <label class="block-label">Courses</label>
+              <div id="courses-tags" class="tag-container"></div>
+              <div class="tag-input-row">
+                <input id="new-course-input" type="text"
+                       placeholder="Add a course and press Enter" />
+                <button type="button" id="add-course-btn" class="btn small-btn ghost-btn">
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Other / profile free text -->
+            <label class="block-label">
+              Profile / Other
+              <textarea id="meta-other" rows="4"
+                        placeholder="Short summary or notes for this profile"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="save-row">
+          <button id="save-btn" type="button" class="btn primary-btn">
+            Save edited resume
+          </button>
+          <span id="save-status" class="status-text"></span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 下面 JS 完全照你原來的，只是移到 body 最後 -->
+  <script>
+    // ===========================
+    // 全域 state
+    // ===========================
+    let currentState = {
+      project_id: null,
+      entries: [],
+      groupedEntries: {},
+      metadata: {},
+      education_structured: [],
+      skillsList: [],
+      coursesList: []
+    };
+
+    // ===========================
+    // 工具：依 entry 分組 bullets
+    // ===========================
+    function groupEntries(entries) {
+      const grouped = { EXPERIENCE: [], PROJECTS: [] };
+      const byKey = {};
+
+      entries.forEach((e) => {
+        const section = e.section || "EXPERIENCE";
+        const entry = e.entry || "Untitled Entry";
+        const text = e.text || "";
+
+        const key = section + "||" + entry;
+        if (!byKey[key]) {
+          byKey[key] = { section, entry, bullets: [] };
+        }
+        byKey[key].bullets.push(text);
+      });
+
+      Object.values(byKey).forEach((obj) => {
+        if (!grouped[obj.section]) grouped[obj.section] = [];
+        grouped[obj.section].push(obj);
+      });
+
+      return grouped;
+    }
+
+    // ===========================
+    // Experience / Projects editor
+    // 每個 bullet 一個 input box
+    // ===========================
+    function renderExperienceEditor() {
+      const container = document.getElementById("experience-container");
+      container.innerHTML = "";
+
+      const sections = ["EXPERIENCE", "PROJECTS"];
+      sections.forEach((sec) => {
+        const sectionEntries = currentState.groupedEntries[sec] || [];
+        if (sectionEntries.length === 0) return;
+
+        const secHeader = document.createElement("h4");
+        secHeader.textContent = sec;
+        container.appendChild(secHeader);
+
+        sectionEntries.forEach((entryObj, idx) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "entry-card";
+          wrapper.dataset.section = sec;
+          wrapper.dataset.index = idx;
+
+          // entry title
+          const titleInput = document.createElement("input");
+          titleInput.className = "entry-title";
+          titleInput.value = entryObj.entry || "";
+          titleInput.placeholder =
+            sec === "EXPERIENCE" ? "Company — Role" : "Project title";
+          wrapper.appendChild(titleInput);
+
+          // bullets container
+          const bulletsLabel = document.createElement("div");
+          bulletsLabel.textContent = "Bullets";
+          bulletsLabel.className = "small-label";
+          wrapper.appendChild(bulletsLabel);
+
+          const bulletsContainer = document.createElement("div");
+          bulletsContainer.className = "bullets-container";
+
+          const bullets = entryObj.bullets && entryObj.bullets.length
+            ? entryObj.bullets
+            : [""];
+
+          bullets.forEach((b) => {
+            const row = document.createElement("div");
+            row.className = "bullet-row";
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "bullet-input";
+            input.value = b;
+
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.textContent = "×";
+            delBtn.className = "bullet-delete-btn";
+            delBtn.onclick = () => {
+              row.remove();
+            };
+
+            row.appendChild(input);
+            row.appendChild(delBtn);
+            bulletsContainer.appendChild(row);
+          });
+
+          wrapper.appendChild(bulletsContainer);
+
+          // row of buttons under entry
+          const btnRow = document.createElement("div");
+          btnRow.className = "entry-button-row";
+
+          const addBulletBtn = document.createElement("button");
+          addBulletBtn.type = "button";
+          addBulletBtn.textContent = "+ Bullet";
+          addBulletBtn.onclick = () => {
+            const row = document.createElement("div");
+            row.className = "bullet-row";
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "bullet-input";
+            input.placeholder = "New bullet point";
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.textContent = "×";
+            delBtn.className = "bullet-delete-btn";
+            delBtn.onclick = () => row.remove();
+            row.appendChild(input);
+            row.appendChild(delBtn);
+            bulletsContainer.appendChild(row);
+          };
+          btnRow.appendChild(addBulletBtn);
+
+          const deleteEntryBtn = document.createElement("button");
+          deleteEntryBtn.type = "button";
+          deleteEntryBtn.textContent = "Delete Entry";
+          deleteEntryBtn.onclick = () => {
+            const list = currentState.groupedEntries[sec];
+            list.splice(idx, 1);
+            renderExperienceEditor();
+          };
+          btnRow.appendChild(deleteEntryBtn);
+
+          wrapper.appendChild(btnRow);
+          container.appendChild(wrapper);
+        });
+      });
+    }
+
+    // 從 DOM 收集 entries（扁平化回原本格式）
+    function collectEntriesFromEditor() {
+      const container = document.getElementById("experience-container");
+      const entryCards = container.querySelectorAll(".entry-card");
+      const entries = [];
+
+      entryCards.forEach((card) => {
+        const section = card.dataset.section || "EXPERIENCE";
+        const title = card.querySelector(".entry-title").value.trim();
+        const bulletInputs = card.querySelectorAll(".bullet-input");
+
+        bulletInputs.forEach((inp) => {
+          const text = inp.value.trim();
+          if (!text) return;
+          entries.push({
+            section,
+            entry: title || "Untitled Entry",
+            text
+          });
+        });
+      });
+
+      return entries;
+    }
+
+    // ===========================
+    // Education structured UI
+    // ===========================
+    function renderEducationEditor() {
+      const container = document.getElementById("education-container");
+      container.innerHTML = "";
+
+      const schools = currentState.education_structured || [];
+      if (!schools.length) return;
+
+      const title = document.createElement("h4");
+      title.textContent = "Education (structured)";
+      container.appendChild(title);
+
+      schools.forEach((s, idx) => {
+        const card = document.createElement("div");
+        card.className = "edu-card";
+        card.dataset.index = idx;
+
+        const schoolInput = document.createElement("input");
+        schoolInput.className = "edu-input";
+        schoolInput.value = s.school_name || "";
+        schoolInput.placeholder = "School name";
+        schoolInput.dataset.field = "school_name";
+
+        const degreeInput = document.createElement("input");
+        degreeInput.className = "edu-input";
+        degreeInput.value = s.degree || "";
+        degreeInput.placeholder = "Degree / Program";
+        degreeInput.dataset.field = "degree";
+
+        const datesInput = document.createElement("input");
+        datesInput.className = "edu-input";
+        datesInput.value = s.dates || "";
+        datesInput.placeholder = "Dates";
+        datesInput.dataset.field = "dates";
+
+        const gpaInput = document.createElement("input");
+        gpaInput.className = "edu-input";
+        gpaInput.value = s.gpa || "";
+        gpaInput.placeholder = "GPA";
+        gpaInput.dataset.field = "gpa";
+
+        card.appendChild(schoolInput);
+        card.appendChild(degreeInput);
+        card.appendChild(datesInput);
+        card.appendChild(gpaInput);
+
+        container.appendChild(card);
+      });
+    }
+
+    function collectEducationFromEditor() {
+      const container = document.getElementById("education-container");
+      const cards = container.querySelectorAll(".edu-card");
+
+      const schools = [];
+      cards.forEach((card) => {
+        const idx = parseInt(card.dataset.index, 10);
+        const original = currentState.education_structured[idx] || {};
+        const inputs = card.querySelectorAll(".edu-input");
+        const updated = { ...original };
+
+        inputs.forEach((inp) => {
+          const field = inp.dataset.field;
+          updated[field] = inp.value;
+        });
+
+        schools.push(updated);
+      });
+
+      return schools;
+    }
+
+    // ===========================
+    // Skills / Courses tags
+    // ===========================
+    function splitToTags(text) {
+      if (!text) return [];
+      return text
+        .split(/[\n,;]/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+    }
+
+    function renderTagList(list, containerId, type) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      list.forEach((item, idx) => {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+
+        const spanText = document.createElement("span");
+        spanText.className = "tag-text";
+        spanText.textContent = item;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tag-remove-btn";
+        btn.textContent = "×";
+        btn.onclick = () => {
+          if (type === "skills") currentState.skillsList.splice(idx, 1);
+          if (type === "courses") currentState.coursesList.splice(idx, 1);
+          rerenderTags();
+        };
+
+        tag.appendChild(spanText);
+        tag.appendChild(btn);
+        container.appendChild(tag);
+      });
+    }
+
+    function rerenderTags() {
+      renderTagList(currentState.skillsList, "skills-tags", "skills");
+      renderTagList(currentState.coursesList, "courses-tags", "courses");
+    }
+
+    function setupTagInput(inputId, btnId, type) {
+      const input = document.getElementById(inputId);
+      const btn = document.getElementById(btnId);
+
+      function addTag() {
+        const val = input.value.trim();
+        if (!val) return;
+        if (type === "skills") currentState.skillsList.push(val);
+        if (type === "courses") currentState.coursesList.push(val);
+        input.value = "";
+        rerenderTags();
+      }
+
+      btn.addEventListener("click", addTag);
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          addTag();
+        }
+      });
+    }
+
+    // ===========================
+    // Upload form handler
+    // ===========================
+    const uploadForm = document.getElementById("upload-form");
+    const uploadStatus = document.getElementById("upload-status");
+    const editorSection = document.getElementById("editor-section");
+
+    uploadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      uploadStatus.textContent = "Uploading and parsing...";
+
+      const projectId = document.getElementById("project-id-input").value.trim();
+      const fileInput = document.getElementById("resume-file-input");
+      if (!projectId || !fileInput.files.length) {
+        uploadStatus.textContent = "Please provide profile ID and choose a PDF file.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("project_id", projectId);
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const resp = await fetch("/api/upload_resume", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!resp.ok) {
+          uploadStatus.textContent = "Upload failed: " + resp.statusText;
+          return;
+        }
+
+        const data = await resp.json();
+        currentState.project_id = data.project_id;
+        currentState.entries = data.entries || [];
+        currentState.metadata = data.metadata || {};
+        currentState.education_structured = data.education_structured || [];
+
+        currentState.groupedEntries = groupEntries(currentState.entries);
+
+        // Skills / Courses 轉為 tags
+        currentState.skillsList = splitToTags(currentState.metadata.SKILLS || "");
+        currentState.coursesList = splitToTags(currentState.metadata.COURSES || "");
+
+        document.getElementById("meta-other").value =
+          currentState.metadata.OTHER || "";
+
+        editorSection.style.display = "block";
+        renderExperienceEditor();
+        renderEducationEditor();
+        rerenderTags();
+        uploadStatus.textContent =
+          "Parsed successfully! You can now edit your resume.";
+      } catch (err) {
+        console.error(err);
+        uploadStatus.textContent = "Error parsing resume.";
+      }
+    });
+
+    // ===========================
+    // Add Experience / Project buttons
+    // ===========================
+    document.getElementById("add-experience-btn").addEventListener("click", () => {
+      if (!currentState.groupedEntries.EXPERIENCE) {
+        currentState.groupedEntries.EXPERIENCE = [];
+      }
+      currentState.groupedEntries.EXPERIENCE.push({
+        section: "EXPERIENCE",
+        entry: "",
+        bullets: [""]
+      });
+      renderExperienceEditor();
+    });
+
+    document.getElementById("add-project-btn").addEventListener("click", () => {
+      if (!currentState.groupedEntries.PROJECTS) {
+        currentState.groupedEntries.PROJECTS = [];
+      }
+      currentState.groupedEntries.PROJECTS.push({
+        section: "PROJECTS",
+        entry: "",
+        bullets: [""]
+      });
+      renderExperienceEditor();
+    });
+
+    // ===========================
+    // Save button
+    // ===========================
+    const saveBtn = document.getElementById("save-btn");
+    const saveStatus = document.getElementById("save-status");
+
+    saveBtn.addEventListener("click", async () => {
+      if (!currentState.project_id) {
+        saveStatus.textContent = "No profile loaded.";
+        return;
+      }
+
+      const entries = collectEntriesFromEditor();
+      const education_structured = collectEducationFromEditor();
+
+      const metadata = {
+        ...currentState.metadata,
+        SKILLS: currentState.skillsList.join("\n"),
+        COURSES: currentState.coursesList.join("\n"),
+        OTHER: document.getElementById("meta-other").value
+      };
+
+      const payload = {
+        project_id: currentState.project_id,
+        entries,
+        metadata,
+        education_structured
+      };
+
+      saveStatus.textContent = "Saving...";
+
+      try {
+        const resp = await fetch("/api/save_resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          saveStatus.textContent = "Save failed: " + resp.statusText;
+          return;
+        }
+        const data = await resp.json();
+
+        // 顯示更明確的訊息＋下一步入口
+        const rid = data.project_id;  // 這個其實就是 resume 版本名稱
+        saveStatus.innerHTML =
+          `Resume saved & embeddings built. ` +
+          `<a href="/profiles/new?resume_id=${encodeURIComponent(rid)}" class="inline-link">
+            + Add job interview using this resume →
+          </a>`;
+      } catch (err) {
+        console.error(err);
+        saveStatus.textContent = "Error saving.";
+      }
+    });
+
+    // ===========================
+    // 初始化 tag input 事件
+    // ===========================
+    setupTagInput("new-skill-input", "add-skill-btn", "skills");
+    setupTagInput("new-course-input", "add-course-btn", "courses");
+  </script>
+</body>
+</html>

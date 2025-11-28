@@ -1,0 +1,352 @@
+/* ============================
+   Global layout & background
+   ============================ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  color: #111827;
+}
+
+/* 跟首頁 / new_profile 一樣的淡藍漸層背景 */
+body {
+  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
+    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+}
+
+/* 主容器寬度，與其他頁一致 */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 72px;
+  box-sizing: border-box;
+}
+
+/* ============================
+   Page header
+   ============================ */
+
+.page-header {
+  padding: 40px 0 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #4b5563;
+  max-width: 640px;
+}
+
+/* ============================
+   Card
+   ============================ */
+
+.card {
+  padding: 24px 24px 28px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+
+  max-width: 1040px;
+  margin: 24px auto 0;
+  box-sizing: border-box;
+}
+
+.section-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.section-subtitle {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ============================
+   Form layout
+   ============================ */
+
+.mock-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.form-row.full-width {
+  flex-direction: column;
+}
+
+.field-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.field-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.field-hint a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.field-hint a:hover {
+  text-decoration: underline;
+}
+
+/* ============================
+   Inputs, selects
+   ============================ */
+
+.mock-form input[type="text"],
+.mock-form select {
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mock-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #9ca3af 50%),
+    linear-gradient(135deg, #9ca3af 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* Focus */
+.mock-form input[type="text"]:focus,
+.mock-form select:focus {
+  outline: none;
+  background: #ffffff;
+  border: 1px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* ============================
+   Radio rows (mode / length)
+   ============================ */
+
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.radio-option input[type="radio"] {
+  margin-top: 3px;
+}
+
+.radio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.radio-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* hover / checked 樣式（由 JS 或瀏覽器 focus 狀態） */
+.radio-option:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(129, 140, 248, 0.2);
+  background: #fefefe;
+}
+
+/* ============================
+   Length settings
+   ============================ */
+
+.length-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.length-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed #e5e7eb;
+  background: #f9fafb;
+}
+
+.length-option > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.length-option input[type="radio"] {
+  margin-right: 4px;
+}
+
+.length-option select {
+  max-width: 220px;
+  margin-left: 22px; /* 跟 radio 對齊一點 */
+  margin-top: 4px;
+}
+
+/* ============================
+   Buttons
+   ============================ */
+
+.button-row {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 共用按鈕基底 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* Primary button：和首頁 CTA 一致 */
+.primary-btn {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  color: #ffffff;
+  border: 1px solid rgba(37, 99, 235, 0.8);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.45);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.55);
+}
+
+/* Ghost button */
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.ghost-btn:hover {
+  background: #f9fafb;
+}
+
+/* ============================
+   Status text
+   ============================ */
+
+.status-text {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+/* ============================
+   Disabled styles
+   ============================ */
+
+.mock-form select:disabled {
+  cursor: not-allowed;
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* ============================
+   RWD
+   ============================ */
+
+@media (max-width: 900px) {
+  .page-header {
+    padding-top: 28px;
+  }
+
+  .form-row {
+    flex-direction: column;
+  }
+
+  .button-row {
+    justify-content: flex-start;
+  }
+
+  .mock-form {
+    max-width: 100%;
+  }
+
+  .radio-row {
+    flex-direction: column;
+  }
+
+  .length-option select {
+    max-width: 100%;
+    margin-left: 0;
+  }
+}

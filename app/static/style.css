@@ -1,0 +1,1999 @@
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.app-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.header h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+
+.subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 20px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+label input[type="text"],
+label input[type="file"],
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.status-text {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+.editor-layout {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.editor-column {
+  flex: 1 1 0;
+  min-width: 280px;
+}
+
+.block-label {
+  margin-top: 8px;
+}
+
+.entry-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+}
+
+.entry-title {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+.bullets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.bullet-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bullet-input {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+.bullet-delete-btn {
+  background: #e5e7eb;
+  color: #111827;
+  padding: 4px 9px;
+  border-radius: 999px;
+}
+
+.bullet-delete-btn:hover {
+  background: #d1d5db;
+}
+
+.small-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.entry-button-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.entry-button-row button {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.entry-button-row button:hover {
+  background: #d1d5db;
+}
+
+.button-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.save-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Education cards */
+
+.edu-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edu-input {
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+/* Tags for skills & courses */
+
+.tag-section {
+  margin-top: 10px;
+}
+
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 12px;
+}
+
+.tag-text {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-remove-btn {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12px;
+  padding: 0 3px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.tag-remove-btn:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.tag-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tag-input-row input {
+  flex: 1;
+}
+
+/* ===== Top nav & home hero ===== */
+
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #60a5fa, #1d4ed8);
+}
+
+.logo-text {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #4b5563;
+}
+
+.nav-links a:hover {
+  color: #111827;
+}
+
+.nav-disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.home-main {
+  margin-top: 4px;
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.hero-left {
+  flex: 1 1 320px;
+  min-width: 300px;
+}
+
+.hero-right {
+  flex: 1 1 320px;
+  min-width: 300px;
+  display: flex;
+  justify-content: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.hero-left h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  margin: 0 0 14px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.primary-btn:hover {
+  background: #1d4ed8;
+}
+
+.ghost-btn {
+  background: transparent;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.ghost-btn:hover {
+  background: #f3f4f6;
+}
+
+.small-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+.hero-points {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.hero-points li {
+  margin-bottom: 4px;
+}
+
+/* Mock panel on the right */
+
+.mock-panel {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 18px;
+  background: #020617;
+  color: #e5e7eb;
+  padding: 14px 14px 12px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.mock-pill {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+}
+
+.mock-status {
+  color: #9ca3af;
+}
+
+.mock-body {
+  background: #020617;
+  border-radius: 12px;
+  padding: 8px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mock-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.mock-question p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mock-layout {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mock-answer-box,
+.mock-sample-box {
+  flex: 1 1 0;
+  min-width: 150px;
+  background: #020617;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  padding: 6px 8px;
+}
+
+.mock-input {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.mock-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mock-toggle {
+  font-size: 10px;
+  color: #60a5fa;
+}
+
+.mock-blur {
+  margin-top: 4px;
+  padding: 4px 0;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #1f2937, #020617);
+  filter: blur(3px);
+}
+
+.mock-blur-line {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.7);
+  margin: 4px 8px;
+}
+
+.mock-blur-line.short {
+  width: 70%;
+}
+
+.mock-hint {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.mock-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.mock-progress {
+  color: #9ca3af;
+}
+
+/* Feature strip */
+
+.feature-strip {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.feature-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.feature-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #4f46e5;
+}
+
+@media (max-width: 768px) {
+  .mock-panel {
+    max-width: 100%;
+  }
+}
+
+/* Profiles page */
+
+.profiles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.profiles-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* 就是一欄 */
+  gap: 16px;
+}
+
+.profile-card {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.profile-main h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+.profile-company {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.profile-snippet {
+  margin: 0;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.profile-footer {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-last {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Practice layout */
+
+.practice-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1.6fr) 280px;
+  gap: 14px;
+}
+
+.practice-sidebar {
+  border-right: 1px solid #e5e7eb;
+  padding-right: 10px;
+  font-size: 13px;
+}
+
+.practice-profile-id {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.practice-meta {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.practice-meta select {
+  width: 100%;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 12px;
+}
+
+.practice-progress-text {
+  margin: 2px 0 0;
+  color: #4b5563;
+  font-size: 12px;
+}
+
+.practice-hints {
+  margin-top: 12px;
+}
+
+.practice-hints ul {
+  list-style: disc;
+  padding-left: 16px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.practice-main {
+  font-size: 13px;
+}
+
+.practice-question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.question-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.question-counter {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.practice-question-text {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.practice-answer-block textarea {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.practice-main-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.practice-sample {
+  border-left: 1px solid #e5e7eb;
+  padding-left: 10px;
+  font-size: 13px;
+}
+
+.sample-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sample-content {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sample-content.blurred {
+  filter: blur(5px);
+}
+
+.sample-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 10px;
+}
+
+/* active nav link */
+
+.nav-active {
+  font-weight: 600;
+  color: #111827;
+}
+
+.page-header {
+  margin-bottom: 16px;
+}
+
+.page-header h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.page-subtitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.page-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.step-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 11px;
+}
+
+.section-title {
+  margin-top: 0;
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.section-subtitle {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.upload-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 220px;
+  font-size: 13px;
+}
+
+.field-label {
+  margin-bottom: 4px;
+  color: #4b5563;
+}
+
+.field-group input[type="text"],
+.field-group input[type="file"] {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.editor-column h3 {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.save-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.profiles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+  gap: 12px;
+}
+
+.profile-card {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.profile-main h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+.profile-company {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.profile-snippet {
+  margin: 0;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.profile-footer {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-meta {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-row.full-width {
+  flex-direction: column;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  font-size: 13px;
+}
+
+.field-hint {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.practice-sidebar select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.practice-history-toggle {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.practice-history-panel {
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f7f7fb;
+}
+
+.history-item {
+  padding: 4px 0;
+  border-bottom: 1px solid #e5e5ef;
+  cursor: pointer;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.history-meta {
+  font-size: 11px;
+  color: #777;
+}
+
+.history-full-link {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  text-align: right;
+}
+
+.history-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.history-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.summary-badge {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f4f4f6;
+}
+
+.summary-number {
+  font-size: 20px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.history-charts-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.chart-card {
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8f9fb;
+}
+
+.chart-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.table-wrapper {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.history-table thead tr {
+  border-bottom: 1px solid #e2e4ea;
+}
+
+.history-table th,
+.history-table td {
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.history-table tbody tr:nth-child(even) {
+  background-color: #fafbff;
+}
+
+.cell-text {
+  max-height: 4.5em; /* 約三行 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-time {
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.col-mode,
+.col-type,
+.col-score {
+  white-space: nowrap;
+}
+
+/* Floating coach chat widget */
+.coach-chat-widget {
+  position: fixed;
+  right: 24px;
+  bottom: 90px;          /* 避開下方 toggle button */
+  width: 360px;
+  max-width: 90vw;
+  height: 480px;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+/* 折疊時隱藏 */
+.coach-chat-widget.collapsed {
+  display: none;
+}
+
+.coach-chat-header {
+  padding: 8px 12px;
+  background: #0f60ff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.coach-chat-header-btn {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.coach-chat-thread {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  background: #f7f8fb;
+}
+
+/* 讓氣泡看起來像聊天 */
+.chat-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.chat-row-user {
+  justify-content: flex-end;
+}
+.chat-row-assistant {
+  justify-content: flex-start;
+}
+
+.chat-bubble {
+  padding: 8px 10px;
+  border-radius: 12px;
+  max-width: 80%;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+.chat-row-user .chat-bubble {
+  background: #0f60ff;
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+.chat-row-assistant .chat-bubble {
+  background: #ffffff;
+  color: #111827;
+  border-bottom-left-radius: 2px;
+}
+
+.coach-chat-input-row {
+  padding: 8px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 8px;
+  background: #fff;
+}
+
+.coach-chat-input-row textarea {
+  flex: 1;
+  resize: none;
+  font-size: 13px;
+}
+
+/* 右下角浮動 toggle 按鈕 */
+.coach-chat-toggle-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  border: none;
+  background: #0f60ff;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(15,96,255,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+.coach-chat-toggle-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* 大的 coach chat 視窗 */
+.coach-chat-widget {
+  position: fixed;            /* 關鍵：固定在視窗上 */
+  right: 24px;
+  bottom: 90px;               /* 往上留空給下面那顆按鈕 */
+  width: 360px;
+  max-width: 90vw;
+  height: 480px;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;              /* 確保在最上層 */
+}
+
+/* 收起來時隱藏 */
+.coach-chat-widget.collapsed {
+  display: none;
+}
+
+.coach-chat-toggle-btn {
+  position: fixed;           /* 一樣固定在視窗 */
+  right: 24px;
+  bottom: 24px;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  border: none;
+  background: #0f60ff;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(15,96,255,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;             /* 比 widget 再高一點 */
+}
+
+/* 右下角小按鈕 */
+.coach-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2000;
+}
+
+.coach-launcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;  /* 你原本的 primary 藍色 */
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.coach-launcher-icon {
+  font-size: 16px;
+}
+
+.coach-launcher-label {
+  line-height: 1;
+}
+
+/* 浮動 chat 視窗 */
+.coach-chat-wrapper {
+  position: fixed;
+  right: 24px;
+  bottom: 88px; /* 避開 launcher 按鈕 */
+  z-index: 2100;
+}
+
+.coach-chat-card {
+  width: 420px;          /* 視窗更寬一點 */
+  max-height: 70vh;      /* 最高佔 70% 視窗高度 */
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.coach-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+.coach-chat-close {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Body: 上訊息，下輸入列 */
+.coach-chat-body {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 8px;
+  height: 100%;
+}
+
+.coach-chat-thread {
+  flex: 1;                    /* 自動撐滿剩餘高度 */
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Input row */
+.coach-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 4px;
+}
+
+.coach-input {
+  flex: 1;
+  min-height: 72px;          /* 讓 placeholder 幾乎都看得到 */
+  max-height: 120px;
+  resize: vertical;
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.coach-send-btn {
+  align-self: stretch;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* 右下角 launcher 小按鈕 */
+.coach-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2000;
+}
+
+.coach-launcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;  /* 自己換成你的主色 */
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
+}
+
+.coach-launcher-icon {
+  font-size: 16px;
+}
+
+.coach-launcher-label {
+  line-height: 1;
+}
+
+/* 浮動 chat 視窗 */
+.coach-chat-wrapper {
+  position: fixed;
+  right: 24px;
+  bottom: 88px; /* 避開 launcher */
+  z-index: 2100;
+}
+
+.coach-chat-card {
+  width: 460px;
+  max-height: 72vh;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.coach-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #2563eb;  /* header 色 */
+  color: #fff;
+}
+
+.coach-chat-title {
+  font-weight: 600;
+}
+
+.coach-chat-close {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Body */
+.coach-chat-body {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 8px;
+  height: 100%;
+}
+
+/* 訊息區 */
+.coach-chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 基本 bubble，你原本的 .chat-row / .chat-bubble 也可以沿用 */
+.chat-row {
+  display: flex;
+  margin-bottom: 6px;
+}
+
+.chat-row-user {
+  justify-content: flex-end;
+}
+
+.chat-row-assistant {
+  justify-content: flex-start;
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  background: #f3f4f6;
+}
+
+.chat-row-user .chat-bubble {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* 輸入列 */
+.coach-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 4px;
+}
+
+.coach-input {
+  flex: 1;
+  min-height: 80px;
+  max-height: 140px;
+  resize: vertical;
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.coach-send-btn {
+  padding: 0 16px;
+  height: 40px;
+  border-radius: 999px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* ====== Launcher：右下角小按鈕 ====== */
+.coach-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2000;
+}
+
+.coach-launcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+.coach-launcher-icon {
+  font-size: 16px;
+}
+
+/* ====== Chat wrapper：固定在右下，不會捲走 ====== */
+.coach-chat-wrapper {
+  position: fixed;
+  right: 24px;
+  bottom: 90px; /* 在 launcher 之上 */
+  z-index: 2100;
+}
+
+/* ====== 主卡片：高度固定，用 flex 切上下區 ====== */
+.coach-chat-card {
+  width: 480px;
+  max-width: 95vw;
+  height: min(560px, 80vh);   /* 不會超過視窗 */
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.coach-chat-header {
+  background: #2563eb;
+  color: #fff;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.coach-chat-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ====== Body：用 flex 把 thread & input 分開 ====== */
+.coach-chat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  box-sizing: border-box;
+}
+
+/* Thread：可捲動區，固定佔滿剩下的高度 */
+.coach-chat-thread {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* Chat bubbles */
+.chat-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.chat-row-user {
+  justify-content: flex-end;
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #f3f4f6;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-row-user .chat-bubble {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* ====== Input row：鎖死在底部，不會被擠掉 ====== */
+.coach-input-row {
+  flex: 0 0 auto;              /* 不能被壓縮到 0 高度 */
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+#coach-input {
+  flex: 1;
+  min-height: 72px;
+  max-height: 140px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+#coach-send-btn {
+  flex: 0 0 auto;
+  padding: 0 18px;
+  height: 40px;
+  border-radius: 12px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 最外層卡片固定大小 */
+.coach-chat-card {
+  width: 420px;
+  height: 520px;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 整個 Body：上下分成訊息區 + 輸入框 */
+.coach-chat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;    /* 防止內容溢出 */
+}
+
+/* 上方訊息區，可 scroll */
+.coach-chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* 下方輸入框固定到底部 */
+.coach-input-row {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid #ddd;
+}
+
+/* textarea 美化 */
+.coach-input {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+  resize: none;
+  font-size: 14px;
+}
+
+/* send 按鈕 */
+.coach-send-btn {
+  background: #3D59FF;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 狀態顏色 */
+.status-idle {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.status-loading {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* 小點點當 loading icon */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0.3; transform: scale(1); }
+}
+
+.progress-card {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f9fafb;
+  box-shadow: 0 0 0 1px #e5e7eb;
+}
+
+/* ============================
+   Profiles page layout
+   ============================ */
+
+.profiles-card {
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 20px 24px 24px;
+}
+
+.profiles-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.profiles-header .section-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.profiles-header .section-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.add-profile-btn {
+  white-space: nowrap;
+}
+
+/* Grid of profile cards */
+
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* Single profile card */
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+/* Header */
+
+.profile-header {
+  margin-bottom: 4px;
+}
+
+.profile-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.profile-company {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Resume pill */
+
+.resume-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  font-size: 11px;
+  font-weight: 500;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+/* JD snippet */
+
+.profile-body {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.profile-snippet {
+  margin: 0;
+}
+
+.profile-snippet-empty {
+  font-style: italic;
+  color: #9ca3af;
+}
+
+.jd-block {
+  position: relative;
+}
+
+/* line-clamp for collapsed JD */
+.jd-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;        /* show 3 lines when collapsed */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* when JS切成展開狀態 (data-collapsed="1")，移除 clamp */
+.jd-text[data-collapsed="1"] {
+  -webkit-line-clamp: initial;
+  overflow: visible;
+}
+
+.see-more-jd {
+  margin-top: 4px;
+  padding: 0;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Footer: stats + practice button */
+
+.profile-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-stats {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.profile-stats .small-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.profile-stats-line {
+  margin: 0;
+}
+
+.profile-stats-line.sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.profile-history-link {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.profile-practice-btn {
+  white-space: nowrap;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .profiles-card {
+    padding: 16px 14px 18px;
+  }
+
+  .profiles-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .profiles-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-practice-btn {
+    align-self: stretch;
+    text-align: center;
+  }
+}
+
+.jd-block {
+  margin-top: 4px;
+}
+
+/* See more / Collapse 按鈕樣式 */
+.see-more-jd {
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  font-size: 12px;
+  font-weight: 500;
+  color: #2563eb;           /* 顯眼的藍色 */
+  text-decoration: underline;
+}
+
+/* hover 效果 */
+.see-more-jd:hover {
+  text-decoration: none;
+}
+
+/* 強制覆蓋 button/a 的全域 hover 樣式 */
+.see-more-jd,
+.see-more-jd:hover,
+.see-more-jd:focus {
+  background: transparent !important;
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  box-shadow: none !important;
+}
+

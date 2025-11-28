@@ -1,0 +1,350 @@
+/* ============================
+   Global layout for history page
+   ============================ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* 跟首頁一樣的淡藍背景 */
+body {
+  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
+    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+}
+
+/* 跟 home / profiles 一致的外框 */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 72px;
+}
+
+/* Header 區 */
+
+.history-main {
+  padding: 32px 0 56px;
+}
+
+.page-header {
+  padding: 8px 0 16px;
+}
+
+.page-header h1 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* 共用卡片樣式 */
+
+.history-card {
+  margin-top: 20px;
+  padding: 18px 20px 20px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+}
+
+/* 小標題 */
+
+.section-title {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.section-subtitle {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.small-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #9ca3af;
+}
+
+/* Summary pills */
+
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.summary-pill {
+  flex: 0 1 140px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+}
+
+.summary-label {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.summary-value {
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Score card */
+
+.history-card--score {
+  margin-top: 18px;
+}
+
+.score-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.score-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.score-filter-row label {
+  color: #6b7280;
+}
+
+.small-select {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 12px;
+}
+
+/* 固定圖表高度：這是關鍵，避免畫面被撐滿 */
+
+.score-chart-shell {
+  margin-top: 14px;
+  height: 260px;              /* 想再小可以改 220px */
+}
+
+/* 讓 canvas 撐滿這個 shell，高度跟著走 */
+
+.score-chart-shell canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Table */
+
+.table-card {
+  margin-top: 24px;
+}
+
+.table-wrapper {
+  margin-top: 10px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.history-table thead {
+  background: #f3f4f6;
+}
+
+.history-table th,
+.history-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.history-table tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.history-table tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+.col-time {
+  white-space: nowrap;
+  font-feature-settings: "tnum" 1;
+}
+
+/* RWD */
+
+@media (max-width: 900px) {
+  .history-card {
+    padding: 14px 14px 18px;
+    border-radius: 18px;
+  }
+
+  .score-chart-shell {
+    height: 220px;
+  }
+
+  .summary-row {
+    gap: 8px;
+  }
+
+  .summary-pill {
+    flex: 1 1 45%;
+  }
+
+  .history-table {
+    font-size: 12px;
+  }
+}
+
+.page-header-with-switch {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.profile-switcher {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* 窄螢幕時改成上下排 */
+@media (max-width: 700px) {
+  .page-header-with-switch {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-switcher {
+    align-items: flex-start;
+  }
+}
+
+/* ====== MEDIA BUTTONS ====== */
+
+.media-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #d0d7e3;
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  margin-left: 8px;
+}
+
+.media-btn:hover {
+  background: #f3f4f6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* text answer pill */
+.answer-pill {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #d0d7e3;
+  background: #fafafa;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.answer-pill:hover {
+  background: #f3f4f6;
+}
+
+/* ====== MEDIA MODAL ====== */
+
+.media-modal {
+  display: none; /* default hidden */
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.55);
+  align-items: center;
+  justify-content: center;
+}
+
+.media-modal-content {
+  background: #ffffff;
+  padding: 20px;
+  width: 90%;
+  max-width: 520px;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+
+.media-modal-content h3 {
+  margin-top: 0;
+  font-size: 18px;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.media-modal-close {
+  position: absolute;
+  right: 14px;
+  top: 10px;
+  cursor: pointer;
+  font-size: 22px;
+  color: #6b7280;
+}
+
+.media-modal-close:hover {
+  color: #111827;
+}
+
+.media-modal-content video,
+.media-modal-content audio {
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 12px;
+}
+

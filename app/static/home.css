@@ -1,0 +1,514 @@
+/* ============================
+   全域字體 & 背景
+   ============================ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px; /* 比預設再大一點 */
+  color: #111827;
+}
+
+/* 全頁共用的淡藍漸層，只在 body 設一次 */
+body {
+  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
+    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+}
+
+/* 控制主要內容寬度 */
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* 只控制 home-main 底下的 margin，避免汙染全站 */
+.home-main h1,
+.home-main h2,
+.home-main h3,
+.home-main p {
+  margin: 0;
+}
+
+.home-main {
+  padding: 32px 0 72px;
+}
+
+/* ============================
+   TOP NAV — 深色 pill bar
+   ============================ */
+
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  max-width: 1200px;
+  margin: 16px auto 32px;
+  padding: 10px 20px;
+  box-sizing: border-box;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: rgba(6, 16, 40, 0.97);
+  border-radius: 999px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.6);
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-text {
+  font-weight: 600;
+  font-size: 15px;
+  color: #f9fafb;
+}
+
+.nav-links a {
+  margin-left: 24px;
+  text-decoration: none;
+  font-size: 14px;
+  color: #9ca3af;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-links a:hover {
+  color: #f9fafb;
+  background: rgba(148, 163, 184, 0.25);
+}
+
+/* 目前所在頁（在模板裡給 <a> 加 class="nav-active"） */
+.nav-links a.nav-active {
+  background: #f9fafb;
+  color: #0f172a;
+}
+
+/* ============================
+   SECTION 1: HERO
+   ============================ */
+
+.home-hero {
+  min-height: 80vh;
+  padding: 40px 0 40px;
+  /* section 本身透明，背景由 body 管 */
+  background: transparent;
+  display: flex;
+  align-items: center;
+}
+
+/* 左文右圖 layout */
+.hero-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 40px;
+  align-items: center;
+}
+
+.hero-copy {
+  max-width: 640px;
+}
+
+.hero-eyebrow {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.hero-title {
+  font-size: 40px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: #4b5563;
+  line-height: 1.7;
+  margin-top: 10px;
+  margin-bottom: 32px;   /* 關鍵：跟按鈕拉開距離 */
+}
+
+/* CTA 區塊 */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;   /* 跟下面 chip 也留一點空 */
+}
+
+.hero-cta,
+.hero-secondary {
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  font-size: 14px;
+}
+
+/* 主 CTA */
+.hero-cta {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  color: #ffffff !important;
+  border-color: rgba(37, 99, 235, 0.8);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+}
+
+/* 次 CTA */
+.hero-secondary {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+/* ✅ 三個 chip：整個畫面置中、桌機時一排顯示 */
+.hero-feature-row {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;  /* 針對整個 container 置中 */
+  gap: 18px;
+  max-width: 960px;         /* 做一個比較窄的 row */
+  margin-left: auto;
+  margin-right: auto;       /* 關鍵：整排水平置中 */
+}
+
+.hero-feature-item {
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  white-space: nowrap;      /* 避免 chip 自己斷行 */
+}
+/* 右側 mock 卡片 */
+
+.hero-media {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mock-panel {
+  width: 100%;
+  max-width: 480px;          /* 寬度大概維持差不多，不刻意變更 */
+  min-height: 360px;         /* 變成「至少」這麼高，比之前略長一點 */
+  border-radius: 24px;
+  padding: 18px 20px 16px;
+  background: #020617;
+  color: #e5e7eb;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.65);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;  /* header / body / footer 垂直分散 */
+  box-sizing: border-box;
+}
+
+.mock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.mock-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.mock-status {
+  font-size: 11px;
+}
+
+/* 讓 body 區塊吃掉中間空間，footer 貼到底 */
+.mock-body {
+  margin-top: 10px;
+  flex: 1;                          /* 吃掉中間高度 */
+  display: flex;
+  flex-direction: column;
+}
+
+.mock-question .mock-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.mock-question p {
+  color: #e5e7eb;
+}
+
+.mock-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.mock-answer-box,
+.mock-sample-box {
+  height: 200px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 8px 9px;
+}
+
+.mock-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.mock-input {
+  height: 100px;
+  margin-top: 6px;
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px dashed rgba(148, 163, 184, 0.5);
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.mock-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mock-toggle {
+  font-size: 10px;
+  color: #60a5fa;
+}
+
+.mock-blur {
+  margin-top: 6px;
+}
+
+.mock-blur-line {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, rgba(148, 163, 184, 0.45), transparent);
+  margin-bottom: 4px;
+}
+
+.mock-blur-line.short {
+  width: 70%;
+}
+
+.mock-hint {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.mock-footer {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mock-next-btn {
+  font-size: 12px;
+}
+
+.mock-progress {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ============================
+   共用 section（下面兩區）
+   ============================ */
+
+.home-section {
+  min-height: 80vh;
+  padding: 72px 0 72px;
+  display: flex;
+  align-items: center;
+  background: transparent;
+}
+
+.home-section-header {
+  max-width: 720px;
+  margin: 0 auto 32px;
+  text-align: center;
+}
+
+.home-section-title {
+  font-size: 26px;
+  margin-bottom: 28px;
+  color: #111827;
+}
+
+.home-section-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 20px; 
+}
+
+/* SECTION 2: 三大功能卡片 */
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.feature-card {
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+  font-size: 13px;
+}
+
+.feature-card h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.feature-card p {
+  color: #4b5563;
+}
+
+/* SECTION 3: How it works */
+
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.how-card {
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+  padding: 14px 14px 16px;
+  font-size: 13px;
+}
+
+.how-card-media {
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: radial-gradient(circle at top, #1d4ed8, #020617);
+}
+
+/* 之後可以換真實圖片 */
+.image-placeholder {
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #e5e7eb;
+  opacity: 0.8;
+}
+
+.how-card h3 {
+  font-size: 15px;
+  margin-bottom: 6px;
+  color: #111827;
+}
+
+.how-card p {
+  color: #4b5563;
+}
+
+/* ============================
+   RWD
+   ============================ */
+
+@media (max-width: 900px) {
+  .hero-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .hero-media {
+    justify-content: flex-start;
+  }
+
+  .mock-panel {
+    max-width: 100%;
+  }
+
+  .hero-feature-row {
+    flex-wrap: wrap; /* 小螢幕允許換行 */
+  }
+
+  .feature-grid,
+  .how-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-section {
+    min-height: auto;
+    padding: 56px 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-title {
+    font-size: 32px;
+  }
+}
+
+/* mock panel 專用按鈕，不影響其他按鈕 */
+.mock-footer .mock-next-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+
+  padding: 8px 18px;
+  border-radius: 999px;
+
+  border: none;
+  cursor: pointer;
+
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+
+  transition: background 0.15s ease,
+              transform 0.15s ease,
+              box-shadow 0.15s ease;
+}
+
+.mock-footer .mock-next-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+
+.mock-footer .mock-next-btn:active {
+  transform: translateY(0px);
+  background: rgba(255, 255, 255, 0.28);
+}

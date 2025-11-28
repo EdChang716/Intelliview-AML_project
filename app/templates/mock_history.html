@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mock history – Intelliview Coach</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/mock_history.css" />
+  <link rel="stylesheet" href="/static/global-nav.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top nav -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Intelliview&nbsp;Coach</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="{{ request.url_for('resume_page') }}">Resume</a>
+        <a href="{{ request.url_for('profiles_page') }}" class="nav-active">Profiles</a>
+        <a href="{{ request.url_for('mock_settings_page') }}">Mock</a>
+      </nav>
+    </header>
+
+    <main class="mock-history-main">
+      <!-- 頁首：標題 + 右上 profile 切換 -->
+      <div class="mock-history-header">
+        <div>
+          <h1 class="page-title">Mock history</h1>
+          <p class="page-subtitle">
+            Review your past mock interviews for each profile.
+          </p>
+          <p class="page-subtitle-small">
+            Current profile: <strong>{{ profile_id }}</strong>
+          </p>
+        </div>
+
+        <div class="profile-switcher">
+          <label for="profile-select" class="switcher-label">Switch profile</label>
+          <select id="profile-select" class="switcher-select">
+            {% for p in all_profiles %}
+              <option value="{{ p.profile_id }}"
+                {% if p.profile_id == profile_id %}selected{% endif %}>
+                {{ p.job_title }}{% if p.company %} – {{ p.company }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- 歷史列表 -->
+      <section class="history-list">
+        {% if sessions %}
+          {% for s in sessions %}
+          <a class="history-card" href="/profiles/{{ profile_id }}/mock_history/{{ s.session_id }}">
+            <div class="history-main">
+              <div class="history-top-row">
+                <span class="history-date">
+                  {{ s.created_at[:10] }}
+                </span>
+                <span class="history-meta">
+                  {{ s.num_questions }} questions · {{ s.length_type|capitalize }} · Hint: {{ s.hint_level }}
+                </span>
+              </div>
+              <div class="history-bottom-row">
+                <span class="history-label">Session ID</span>
+                <span class="history-session-id">{{ s.session_id }}</span>
+              </div>
+            </div>
+            <div class="history-score">
+              {% if s.overall_score is not none %}
+                {% set score = s.overall_score %}
+                {% if score >= 8 %}
+                  {% set score_class = "score-pill-high" %}
+                {% elif score >= 5 %}
+                  {% set score_class = "score-pill-mid" %}
+                {% else %}
+                  {% set score_class = "score-pill-low" %}
+                {% endif %}
+                <span class="score-pill {{ score_class }}">
+                  Score {{ score }}/10
+                </span>
+              {% else %}
+                <span class="score-pill score-pill-empty">
+                  No score
+                </span>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            No mock interviews yet for this profile.
+          </div>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // 右上切換 profile → 導到該 profile 的 mock_history
+    document.addEventListener("DOMContentLoaded", () => {
+      const select = document.getElementById("profile-select");
+      if (!select) return;
+
+      select.addEventListener("change", () => {
+        const pid = select.value;
+        if (pid) {
+          window.location.href = `/profiles/${encodeURIComponent(pid)}/mock_history`;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+
