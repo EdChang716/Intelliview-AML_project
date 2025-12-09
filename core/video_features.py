@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Union
 
 import cv2
 import numpy as np
@@ -13,7 +13,7 @@ def _euclidean(p1, p2):
     return float(np.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2))
 
 
-def extract_video_features(video_path: str | Path, max_frames: int = 600) -> Dict[str, Any]:
+def extract_video_features(video_path: Union[str, Path], max_frames: int = 600) -> Dict[str, Any]:
     """
     從一個 .webm / .mp4 等影片檔抽出「面試行為」相關的視覺特徵與分數。
 

@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Intelliview Coach – Interview Profiles</title>
   <!-- 共用 top nav -->
   <!-- 專用 Profiles 版面 -->
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="stylesheet" href="/static/profile.css" />
-  <link rel="stylesheet" href="/static/global-nav.css" />
+  <link rel="stylesheet" href="/static/style.css?v=5" />
+  <link rel="stylesheet" href="/static/profile.css?v=5" />
+  <link rel="stylesheet" href="/static/global-nav.css?v=5" />
 </head>
+
 <body>
   <div class="app-container">
     <!-- Top nav -->
@@ -43,8 +45,7 @@
               Select a profile to start practicing interview questions tailored to that job.
             </p>
           </div>
-          <a href="{{ request.url_for('new_profile_page') }}"
-             class="btn primary-btn add-profile-btn">
+          <a href="{{ request.url_for('new_profile_page') }}" class="btn primary-btn add-profile-btn">
             + Add new profile
           </a>
         </div>
@@ -55,6 +56,19 @@
           {% set has_jd = p.jd_text is defined and p.jd_text %}
           <article class="profile-card">
             <!-- 上：標題列 -->
+            <!-- Menu outside the flex flow, positioned absolute -->
+            <div class="menu-container abs-top-right">
+              <button class="menu-btn" onclick="toggleMenu('menu-{{ p.profile_id }}')">⋮</button>
+              <div id="menu-{{ p.profile_id }}" class="menu-dropdown">
+                <a href="{{ request.url_for('new_profile_page') }}?profile_id={{ p.profile_id }}" class="menu-item">
+                  ✏️ Edit
+                </a>
+                <button class="menu-item danger-text" onclick="deleteProfile('{{ p.profile_id }}')">
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+
             <header class="profile-header-row">
               <div>
                 <h3 class="profile-title">{{ p.job_title }}</h3>
@@ -62,9 +76,9 @@
                   {{ p.company or "Company not set" }}
                 </p>
               </div>
-              <span class="resume-pill">
-                {{ p.resume_id }}
-              </span>
+              <div class="row-auto">
+                <span class="resume-pill">{{ p.resume_id }}</span>
+              </div>
             </header>
 
             <!-- 中：JD 摘要 -->
@@ -74,12 +88,8 @@
               <p class="profile-snippet">
                 {{ p.jd_text[:snippet_len] }}{% if p.jd_text|length > snippet_len %}...{% endif %}
               </p>
-              <button
-                type="button"
-                class="link-btn see-more-jd"
-                data-full-jd="{{ p.jd_text|e }}"
-                data-title="{{ p.job_title|e }}{% if p.company %} at {{ p.company|e }}{% endif %}"
-              >
+              <button type="button" class="link-btn see-more-jd" data-full-jd="{{ p.jd_text|e }}"
+                data-title="{{ p.job_title|e }}{% if p.company %} at {{ p.company|e }}{% endif %}">
                 See more
               </button>
               {% else %}
@@ -95,20 +105,19 @@
               <div class="profile-stats">
                 <div class="small-label">Practice</div>
                 {% if s.total > 0 %}
-                  <p class="profile-stats-line">
-                    Total {{ s.total }}
-                  </p>
-                  <p class="profile-stats-line sub">
-                    Auto {{ s.by_mode.auto }} · Behavioral {{ s.by_mode.behavioral }} · Project {{ s.by_mode.project }}
-                  </p>
+                <p class="profile-stats-line">
+                  Total {{ s.total }}
+                </p>
+                <p class="profile-stats-line sub">
+                  Auto {{ s.by_mode.auto }} · Behavioral {{ s.by_mode.behavioral }} · Project {{ s.by_mode.project }}
+                </p>
                 {% else %}
-                  <p class="profile-stats-line">
-                    No practice history yet.
-                  </p>
+                <p class="profile-stats-line">
+                  No practice history yet.
+                </p>
                 {% endif %}
                 <div class="profile-history-links">
-                  <a href="/profiles/{{ p.profile_id }}/history"
-                    class="link-btn profile-history-link">
+                  <a href="/profiles/{{ p.profile_id }}/history" class="link-btn profile-history-link">
                     Practice history →
                   </a>
                   <a href="/profiles/{{ p.profile_id }}/mock_history"
@@ -181,6 +190,37 @@
         }
       });
     });
+
+    async function deleteProfile(profileId) {
+      if (!confirm("Are you sure you want to delete this profile?")) return;
+      try {
+        const res = await fetch(`/api/profile/${profileId}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to delete");
+        window.location.reload();
+      } catch (e) {
+        alert("Error deleting profile: " + e);
+      }
+    }
+
+    // Toggle menu dropdown (shared logic)
+    function toggleMenu(menuId) {
+      // close all others
+      document.querySelectorAll('.menu-dropdown').forEach(el => {
+        if (el.id !== menuId) el.classList.remove('show');
+      });
+      const menu = document.getElementById(menuId);
+      if (menu) menu.classList.toggle('show');
+    }
+
+    // Close menus when clicking outside
+    window.addEventListener('click', function (e) {
+      if (!e.target.matches('.menu-btn')) {
+        document.querySelectorAll('.menu-dropdown').forEach(el => {
+          el.classList.remove('show');
+        });
+      }
+    });
   </script>
 </body>
+
 </html>
