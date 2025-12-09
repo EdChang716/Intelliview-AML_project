@@ -1,7 +1,7 @@
 # core/transcription.py
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 
 import requests
 
@@ -12,7 +12,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 # ========== 現有：整段檔案一次轉錄（備用/非 realtime） ==========
 
 def transcribe_media(
-    path: str | Path,
+    path: Union[str, Path],
     *,
     language: str = "en",
     prompt: Optional[str] = None,

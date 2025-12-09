@@ -1,0 +1,22 @@
+{
+  "profiles": [
+    {
+      "profile_id": "tiktok_ds",
+      "job_title": "Data Science Intern",
+      "company": "Tiktok",
+      "jd_text": "Save edited resume",
+      "resume_id": "resume_MLE",
+      "created_at": "2025-12-08T22:23:44.480935Z",
+      "updated_at": "2025-12-08T22:23:44.480935Z"
+    },
+    {
+      "profile_id": "tiktok_mle",
+      "job_title": "MLE Intern",
+      "company": "BCGX",
+      "jd_text": "http://127.0.0.1:8000/profiles",
+      "resume_id": "resume_ds",
+      "created_at": "2025-12-08T22:26:35.481169Z",
+      "updated_at": "2025-12-08T22:31:21.949145Z"
+    }
+  ]
+}

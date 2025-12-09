@@ -11,3 +11,6 @@ MODEL_DIR = BASE_DIR / "models" / "jdq_bullet_finetuned"
 
 SESSIONS_DIR = USER_DATA_DIR / "sessions"
 SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+
+SESSION_MEDIA_DIR = USER_DATA_DIR / "session_media"
+SESSION_MEDIA_DIR.mkdir(parents=True, exist_ok=True)

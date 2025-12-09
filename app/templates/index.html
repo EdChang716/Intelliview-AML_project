@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Intelliview Coach – Resume Setup</title>
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="stylesheet" href="/static/resume.css" />
-  <link rel="stylesheet" href="/static/global-nav.css" />
+  <link rel="stylesheet" href="/static/style.css?v=5" />
+  <link rel="stylesheet" href="/static/resume.css?v=5" />
+  <link rel="stylesheet" href="/static/global-nav.css?v=5" />
 </head>
+
 <body>
   <div class="app-container">
     <!-- Top nav，一樣的風格 -->
@@ -38,22 +40,36 @@
         </div>
       </section>
 
-      <!-- Step 1: Upload -->
-      <section class="card">
-        <h2 class="section-title">1. Upload Resume</h2>
+      <!-- Phase 0: Resume List -->
+      <section class="card" id="list-section">
+        <div class="profiles-header">
+          <h2 class="section-title">Your Resumes</h2>
+          <button id="btn-add-resume" class="btn primary-btn">+ Add New Resume</button>
+        </div>
+        <p class="section-subtitle">Manage your resume versions. Edit entries or delete old versions.</p>
+        <div id="resume-list-container" class="profile-grid">
+          <!-- Resumes will be injected here via JS -->
+          <p>Loading...</p>
+        </div>
+      </section>
+
+      <!-- Step 1: Upload (Hidden by default) -->
+      <section class="card" id="upload-section" style="display:none;">
+        <div class="row-spaced">
+          <h2 class="section-title">1. Upload Resume</h2>
+          <button id="btn-cancel-upload" class="btn ghost-btn small-btn">Cancel</button>
+        </div>
         <p class="section-subtitle">
           Give this resume a name (e.g. <code>resume_DS</code>), then upload your PDF.
         </p>
         <form id="upload-form" class="upload-form">
           <label class="field-group">
-            <span class="field-label">Profile ID</span>
-            <input type="text" id="project-id-input" name="project_id"
-                   placeholder="e.g. resume_DS" required />
+            <span class="field-label">Profile ID (Unique Name)</span>
+            <input type="text" id="project-id-input" name="project_id" placeholder="e.g. resume_DS" required />
           </label>
           <label class="field-group">
             <span class="field-label">Resume PDF</span>
-            <input type="file" id="resume-file-input" name="file"
-                   accept="application/pdf" required />
+            <input type="file" id="resume-file-input" name="file" accept="application/pdf" required />
           </label>
           <div class="button-row">
             <button type="submit" class="btn primary-btn">
@@ -64,9 +80,12 @@
         <p id="upload-status" class="status-text"></p>
       </section>
 
-      <!-- Step 2: Editor -->
+      <!-- Step 2: Editor (Hidden by default) -->
       <section class="card" id="editor-section" style="display:none;">
-        <h2 class="section-title">2. Edit Parsed Resume</h2>
+        <div class="row-spaced">
+          <h2 class="section-title">Edit Resume: <span id="editor-project-id"></span></h2>
+          <button id="btn-cancel-edit" class="btn ghost-btn small-btn">Back to List</button>
+        </div>
         <p class="section-subtitle">
           Adjust entries, bullets, and education. These will be used to build embeddings
           for your interview practice.
@@ -99,8 +118,7 @@
               <label class="block-label">Skills</label>
               <div id="skills-tags" class="tag-container"></div>
               <div class="tag-input-row">
-                <input id="new-skill-input" type="text"
-                       placeholder="Add a skill and press Enter" />
+                <input id="new-skill-input" type="text" placeholder="Add a skill and press Enter" />
                 <button type="button" id="add-skill-btn" class="btn small-btn ghost-btn">
                   Add
                 </button>
@@ -112,8 +130,7 @@
               <label class="block-label">Courses</label>
               <div id="courses-tags" class="tag-container"></div>
               <div class="tag-input-row">
-                <input id="new-course-input" type="text"
-                       placeholder="Add a course and press Enter" />
+                <input id="new-course-input" type="text" placeholder="Add a course and press Enter" />
                 <button type="button" id="add-course-btn" class="btn small-btn ghost-btn">
                   Add
                 </button>
@@ -123,8 +140,7 @@
             <!-- Other / profile free text -->
             <label class="block-label">
               Profile / Other
-              <textarea id="meta-other" rows="4"
-                        placeholder="Short summary or notes for this profile"></textarea>
+              <textarea id="meta-other" rows="4" placeholder="Short summary or notes for this profile"></textarea>
             </label>
           </div>
         </div>
@@ -456,14 +472,157 @@
     }
 
     // ===========================
-    // Upload form handler
+    // UI Switching and Initialization
     // ===========================
-    const uploadForm = document.getElementById("upload-form");
-    const uploadStatus = document.getElementById("upload-status");
+    const listSection = document.getElementById("list-section");
+    const uploadSection = document.getElementById("upload-section");
     const editorSection = document.getElementById("editor-section");
+    const resumeListContainer = document.getElementById("resume-list-container");
 
-    uploadForm.addEventListener("submit", async (e) => {
+    function showList() {
+      listSection.style.display = "block";
+      uploadSection.style.display = "none";
+      editorSection.style.display = "none";
+      fetchResumes();
+    }
+
+    function showUpload() {
+      listSection.style.display = "none";
+      uploadSection.style.display = "block";
+      editorSection.style.display = "none";
+      document.getElementById("project-id-input").value = "";
+      document.getElementById("resume-file-input").value = "";
+      document.getElementById("upload-status").textContent = "";
+    }
+
+    function showEditor() {
+      listSection.style.display = "none";
+      uploadSection.style.display = "none";
+      editorSection.style.display = "block";
+      document.getElementById("editor-project-id").textContent = currentState.project_id;
+    }
+
+    // List fetching
+    async function fetchResumes() {
+      try {
+        resumeListContainer.innerHTML = "<p>Loading...</p>";
+        const res = await fetch("/api/resumes");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        renderResumeList(data.resumes);
+      } catch (e) {
+        resumeListContainer.innerHTML = "<p>Error loading resumes.</p>";
+        console.error(e);
+      }
+    }
+
+    function renderResumeList(resumes) {
+      if (!resumes || resumes.length === 0) {
+        resumeListContainer.innerHTML = "<p>No resumes found.</p>";
+        return;
+      }
+      resumeListContainer.innerHTML = "";
+      resumes.forEach(r => {
+        const card = document.createElement("article");
+        card.className = "profile-card";
+        // Unique ID for dropdown
+        const menuId = "menu-" + r.project_id;
+
+        card.innerHTML = `
+                <div class="menu-container abs-top-right">
+                    <button class="menu-btn" onclick="toggleMenu('${menuId}')">⋮</button>
+                    <div id="${menuId}" class="menu-dropdown">
+                        <button class="menu-item" onclick="editResume('${r.project_id}')">
+                            ✏️ Edit
+                        </button>
+                        <button class="menu-item danger-text" onclick="deleteResume('${r.project_id}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+
+                <header class="profile-header-row">
+                    <div>
+                        <h3 class="profile-title">${r.project_id}</h3>
+                        <p class="profile-company">Resume</p>
+                    </div>
+                </header>
+
+                <div class="profile-body">
+                    <p class="profile-snippet">Resume ID: ${r.project_id}</p>
+                </div>
+            `;
+        resumeListContainer.appendChild(card);
+      });
+    }
+
+    // Toggle menu dropdown
+    window.toggleMenu = function (menuId) {
+      // close all others
+      document.querySelectorAll('.menu-dropdown').forEach(el => {
+        if (el.id !== menuId) el.classList.remove('show');
+      });
+      const menu = document.getElementById(menuId);
+      if (menu) menu.classList.toggle('show');
+    };
+
+    // Close menus when clicking outside
+    window.addEventListener('click', function (e) {
+      if (!e.target.matches('.menu-btn')) {
+        document.querySelectorAll('.menu-dropdown').forEach(el => {
+          el.classList.remove('show');
+        });
+      }
+    });
+
+    // Actions
+    window.editResume = async function (projectId) {
+      try {
+        const res = await fetch(`/api/resume/${projectId}`);
+        if (!res.ok) throw new Error("Failed to load");
+        const data = await res.json();
+
+        // Populate state
+        currentState.project_id = data.project_id;
+        currentState.entries = data.entries || [];
+        currentState.metadata = data.metadata || [];
+        currentState.education_structured = data.education_structured || [];
+
+        currentState.groupedEntries = groupEntries(currentState.entries);
+        currentState.skillsList = splitToTags(currentState.metadata.SKILLS || "");
+        currentState.coursesList = splitToTags(currentState.metadata.COURSES || "");
+
+        document.getElementById("meta-other").value = currentState.metadata.OTHER || "";
+
+        renderExperienceEditor();
+        renderEducationEditor();
+        rerenderTags();
+        document.getElementById("save-status").textContent = "";
+        showEditor();
+      } catch (e) {
+        alert("Error loading resume data: " + e);
+      }
+    };
+
+    window.deleteResume = async function (projectId) {
+      if (!confirm(`Are you sure you want to delete ${projectId}? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`/api/resume/${projectId}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to delete");
+        fetchResumes();
+      } catch (e) {
+        alert("Error deleting resume: " + e);
+      }
+    };
+
+    // Event Listeners
+    document.getElementById("btn-add-resume").addEventListener("click", showUpload);
+    document.getElementById("btn-cancel-upload").addEventListener("click", showList);
+    document.getElementById("btn-cancel-edit").addEventListener("click", showList);
+    document.getElementById("upload-form").addEventListener("submit", async (e) => {
+      // ... (existing submit logic, mostly same but calls showEditor at end)
       e.preventDefault();
+      const uploadStatus = document.getElementById("upload-status");
       uploadStatus.textContent = "Uploading and parsing...";
 
       const projectId = document.getElementById("project-id-input").value.trim();
@@ -482,69 +641,32 @@
           method: "POST",
           body: formData
         });
-
         if (!resp.ok) {
           uploadStatus.textContent = "Upload failed: " + resp.statusText;
           return;
         }
-
         const data = await resp.json();
+        // Load into editor
         currentState.project_id = data.project_id;
         currentState.entries = data.entries || [];
         currentState.metadata = data.metadata || {};
         currentState.education_structured = data.education_structured || [];
-
         currentState.groupedEntries = groupEntries(currentState.entries);
-
-        // Skills / Courses 轉為 tags
         currentState.skillsList = splitToTags(currentState.metadata.SKILLS || "");
         currentState.coursesList = splitToTags(currentState.metadata.COURSES || "");
+        document.getElementById("meta-other").value = currentState.metadata.OTHER || "";
 
-        document.getElementById("meta-other").value =
-          currentState.metadata.OTHER || "";
-
-        editorSection.style.display = "block";
         renderExperienceEditor();
         renderEducationEditor();
         rerenderTags();
-        uploadStatus.textContent =
-          "Parsed successfully! You can now edit your resume.";
+        showEditor();
       } catch (err) {
         console.error(err);
         uploadStatus.textContent = "Error parsing resume.";
       }
     });
 
-    // ===========================
-    // Add Experience / Project buttons
-    // ===========================
-    document.getElementById("add-experience-btn").addEventListener("click", () => {
-      if (!currentState.groupedEntries.EXPERIENCE) {
-        currentState.groupedEntries.EXPERIENCE = [];
-      }
-      currentState.groupedEntries.EXPERIENCE.push({
-        section: "EXPERIENCE",
-        entry: "",
-        bullets: [""]
-      });
-      renderExperienceEditor();
-    });
-
-    document.getElementById("add-project-btn").addEventListener("click", () => {
-      if (!currentState.groupedEntries.PROJECTS) {
-        currentState.groupedEntries.PROJECTS = [];
-      }
-      currentState.groupedEntries.PROJECTS.push({
-        section: "PROJECTS",
-        entry: "",
-        bullets: [""]
-      });
-      renderExperienceEditor();
-    });
-
-    // ===========================
-    // Save button
-    // ===========================
+    // Save button (mostly same)
     const saveBtn = document.getElementById("save-btn");
     const saveStatus = document.getElementById("save-status");
 
@@ -553,10 +675,8 @@
         saveStatus.textContent = "No profile loaded.";
         return;
       }
-
       const entries = collectEntriesFromEditor();
       const education_structured = collectEducationFromEditor();
-
       const metadata = {
         ...currentState.metadata,
         SKILLS: currentState.skillsList.join("\n"),
@@ -570,34 +690,33 @@
         metadata,
         education_structured
       };
-
       saveStatus.textContent = "Saving...";
-
       try {
         const resp = await fetch("/api/save_resume", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-
         if (!resp.ok) {
           saveStatus.textContent = "Save failed: " + resp.statusText;
           return;
         }
-        const data = await resp.json();
 
-        // 顯示更明確的訊息＋下一步入口
-        const rid = data.project_id;  // 這個其實就是 resume 版本名稱
-        saveStatus.innerHTML =
-          `Resume saved & embeddings built. ` +
-          `<a href="/profiles/new?resume_id=${encodeURIComponent(rid)}" class="inline-link">
-            + Add job interview using this resume →
-          </a>`;
+        // Success Logic:
+        saveStatus.textContent = "Saved!";
+        // Delay slightly then go back to list
+        setTimeout(() => {
+          showList();
+        }, 800);
+
       } catch (err) {
         console.error(err);
         saveStatus.textContent = "Error saving.";
       }
     });
+
+    // Initial load
+    fetchResumes();
 
     // ===========================
     // 初始化 tag input 事件
@@ -606,4 +725,5 @@
     setupTagInput("new-course-input", "add-course-btn", "courses");
   </script>
 </body>
+
 </html>

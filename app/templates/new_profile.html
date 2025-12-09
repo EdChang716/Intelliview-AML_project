@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>New Interview Profile – Intelliview Coach</title>
@@ -8,8 +9,9 @@
   <link rel="stylesheet" href="/static/global-nav.css" />
   <!-- 這頁自己的樣式 -->
   <link rel="stylesheet" href="/static/new_profiles.css" />
-  
+
 </head>
+
 <body>
   <div class="app-container">
     <!-- Top nav -->
@@ -47,33 +49,19 @@
           <div class="form-row">
             <label class="field-group">
               <span class="field-label">Profile ID</span>
-              <input
-                type="text"
-                id="profile-id-input"
-                placeholder="e.g. bcg_ds_2026"
-                required
-              />
+              <input type="text" id="profile-id-input" placeholder="e.g. bcg_ds_2026" required />
             </label>
 
             <label class="field-group">
               <span class="field-label">Job title</span>
-              <input
-                type="text"
-                id="job-title-input"
-                placeholder="e.g. Data Science Intern"
-                required
-              />
+              <input type="text" id="job-title-input" placeholder="e.g. Data Science Intern" required />
             </label>
           </div>
 
           <div class="form-row">
             <label class="field-group">
               <span class="field-label">Company</span>
-              <input
-                type="text"
-                id="company-input"
-                placeholder="e.g. BCG X"
-              />
+              <input type="text" id="company-input" placeholder="e.g. BCG X" />
             </label>
 
             <label class="field-group">
@@ -81,10 +69,9 @@
               <select id="resume-id-select" required>
                 <option value="" disabled selected>Select a resume version</option>
                 {% for rid in resume_ids %}
-                  <option value="{{ rid }}"
-                    {% if default_resume_id and rid == default_resume_id %}selected{% endif %}>
-                    {{ rid }}
-                  </option>
+                <option value="{{ rid }}" {% if default_resume_id and rid==default_resume_id %}selected{% endif %}>
+                  {{ rid }}
+                </option>
                 {% endfor %}
               </select>
               <small class="field-hint">
@@ -98,12 +85,8 @@
           <div class="form-row full-width">
             <label class="field-group">
               <span class="field-label">Job description</span>
-              <textarea
-                id="jd-text-input"
-                class="jd-textarea"
-                placeholder="Paste the full job description here..."
-                required
-              ></textarea>
+              <textarea id="jd-text-input" class="jd-textarea" placeholder="Paste the full job description here..."
+                required></textarea>
             </label>
           </div>
 
@@ -126,15 +109,44 @@
     const form = document.getElementById("new-profile-form");
     const statusEl = document.getElementById("save-profile-status");
 
+    // Check for profile_id in URL to pre-fill
+    // Ideally the server template could do this, but JS fetch is also fine for simplicity
+    const urlParams = new URLSearchParams(window.location.search);
+    const editProfileId = urlParams.get('profile_id');
+
+    if (editProfileId) {
+      document.getElementById("profile-id-input").value = editProfileId;
+      document.getElementById("profile-id-input").disabled = true; // Cannot change ID on edit
+
+      // Fetch existing data
+      fetch(`/api/profile/${editProfileId}`)
+        .then(r => {
+          if (!r.ok) throw new Error("Profile not found");
+          return r.json();
+        })
+        .then(data => {
+          document.getElementById("job-title-input").value = data.job_title || "";
+          document.getElementById("company-input").value = data.company || "";
+          document.getElementById("resume-id-select").value = data.resume_id || "";
+          document.getElementById("jd-text-input").value = data.jd_text || "";
+          document.querySelector(".section-title").textContent = "Edit Profile";
+          document.title = "Edit Profile – Intelliview Coach";
+        })
+        .catch(e => {
+          console.error(e);
+          statusEl.textContent = "Error loading profile data.";
+        });
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       statusEl.textContent = "Saving profile...";
 
       const profileId = document.getElementById("profile-id-input").value.trim();
-      const jobTitle  = document.getElementById("job-title-input").value.trim();
-      const company   = document.getElementById("company-input").value.trim();
-      const resumeId  = document.getElementById("resume-id-select").value;
-      const jdText    = document.getElementById("jd-text-input").value.trim();
+      const jobTitle = document.getElementById("job-title-input").value.trim();
+      const company = document.getElementById("company-input").value.trim();
+      const resumeId = document.getElementById("resume-id-select").value;
+      const jdText = document.getElementById("jd-text-input").value.trim();
 
       if (!profileId || !jobTitle || !resumeId || !jdText) {
         statusEl.textContent = "Please fill in required fields.";
@@ -143,10 +155,10 @@
 
       const payload = {
         profile_id: profileId,
-        job_title:  jobTitle,
-        company:    company || null,
-        jd_text:    jdText,
-        resume_id:  resumeId
+        job_title: jobTitle,
+        company: company || null,
+        jd_text: jdText,
+        resume_id: resumeId
       };
 
       try {
@@ -162,11 +174,11 @@
         }
 
         const data = await resp.json();
-        statusEl.innerHTML =
-          `Profile saved. ` +
-          `<a href="/practice/${encodeURIComponent(data.profile_id)}" class="inline-link">
-             Start practice →
-           </a> or <a href="/profiles" class="inline-link">back to profiles</a>.`;
+        statusEl.innerHTML = "Profile saved! Redirecting...";
+
+        setTimeout(() => {
+          window.location.href = "/profiles";
+        }, 800);
 
       } catch (err) {
         console.error(err);
@@ -175,4 +187,5 @@
     });
   </script>
 </body>
+
 </html>
