@@ -29,3 +29,4 @@ websockets
 aiohttp
 librosa
 python-multipart
+google.generativeai

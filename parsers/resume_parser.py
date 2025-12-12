@@ -12,10 +12,17 @@ import pdfplumber
 # ======================
 
 def extract_pdf_text(pdf_path: str) -> str:
+    """
+    Extracts text from PDF.
+    Using layout=False often works better for single-column resumes
+    to preserve reading order, but you can toggle to True if needed.
+    """
     text = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            page_text = page.extract_text()
+            # layout=True helps preserve visual spacing, which is sometimes useful
+            # but for standard parsing, raw stream is often easier if columns aren't an issue.
+            page_text = page.extract_text(layout=False)
             if page_text:
                 text.append(page_text)
     return "\n".join(text)
@@ -26,22 +33,31 @@ def extract_pdf_text(pdf_path: str) -> str:
 # ======================
 
 def is_section_header(line: str) -> bool:
+    """
+    Detects if a line is a major section header (e.g., "EXPERIENCE", "PROJECTS").
+    Criteria: Uppercase, reasonable length, not a bullet.
+    """
     clean = line.strip()
-    return clean.isupper() and 3 <= len(clean) <= 40
+    # "WORK EXPERIENCE" or "PROJECTS" match this
+    if clean.isupper() and 3 <= len(clean) <= 40 and not is_bullet(clean):
+        return True
+    return False
 
 
 def is_bullet(line: str) -> bool:
+    """Detects standard bullet points."""
     clean = line.strip()
-    return clean.startswith("•") or clean.startswith("- ")
+    return clean.startswith("•") or clean.startswith("- ") or clean.startswith("●")
 
 
-def is_role_title(line: str) -> bool:
-    # 依照你履歷常見職稱關鍵字
-    keywords = [
-        "Intern", "Assistant", "Research", "Engineer", "Scientist",
-        "Developer", "Associate", "Fellow"
-    ]
-    return any(k in line for k in keywords)
+def is_date_range(line: str) -> bool:
+    """
+    Detects date ranges to identify the start of a new entry.
+    Matches: "Jun 2025 - Present", "2024-2025", "Oct 2024", "Sep 2020-Dec 2024"
+    """
+    # Regex to catch standard Month Year formats or "Present"
+    date_pattern = r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|Present|\d{4}\s*-\s*\d{4}|\d{4}"
+    return bool(re.search(date_pattern, line, re.IGNORECASE))
 
 
 # ======================
@@ -50,92 +66,107 @@ def is_role_title(line: str) -> bool:
 
 def parse_resume_entries(text: str):
     """
-    解析出經驗型的 bullets，輸出 list of dict：
+    Parses experience-type bullets from resume text.
+    Returns list of dict:
     {
-        "section": "EXPERIENCE" / "PROJECTS",
-        "entry": "CAYIN Technology — AI Engineering Intern ...",
-        "text":  "某一條 bullet"
+        "section": "EXPERIENCE" / "PROJECTS" / etc.,
+        "entry": "Job Title (Date Range)",
+        "text":  "A single bullet point"
     }
+
+    Improved logic from dfparser_updated.ipynb:
+    - Better date range detection
+    - Smarter entry detection (title + date or title + bullet)
+    - More robust multi-line bullet merging
     """
+    # Split lines and remove pure whitespace
     lines = [l.rstrip() for l in text.split("\n") if l.strip()]
 
     results = []
-    current_section = None
-    current_entry = None
+    current_section = "UNCATEGORIZED"
+    current_entry = "General"
 
     i = 0
     while i < len(lines):
         line = lines[i].strip()
 
-        # 1) SECTION header
+        # ---------------------------------------------------------
+        # 1. Detect SECTION HEADER
+        # ---------------------------------------------------------
         if is_section_header(line):
             current_section = line
-            current_entry = None
+            current_entry = None  # Reset entry on new section
             i += 1
             continue
 
-        # 2) EXPERIENCE entry: company + role (兩行)
-        if (
-            current_section == "EXPERIENCE"
-            and i + 1 < len(lines)
-            and not is_bullet(line)
-            and not is_section_header(line)
-            and not is_bullet(lines[i+1])
-            and is_role_title(lines[i+1])
-        ):
-            company = line
-            role = lines[i+1].strip()
-            current_entry = f"{company} — {role}"
-            i += 2
+        # ---------------------------------------------------------
+        # 2. Detect NEW ENTRY (Job or Project Title)
+        # Logic: If we are in Experience/Projects, and the line is NOT a bullet,
+        # AND the NEXT line looks like a Date or a Bullet, this line is a Title.
+        # ---------------------------------------------------------
+        is_new_entry = False
+
+        # Check constraints to avoid false positives in random text
+        if current_section in ["EXPERIENCE", "WORK EXPERIENCE", "PROJECTS", "LEADERSHIP EXPERIENCE"]:
+            if not is_bullet(line):
+                # Look ahead 1 line
+                if i + 1 < len(lines):
+                    next_line = lines[i+1].strip()
+
+                    # If next line is a date, this line is definitely a Title
+                    if is_date_range(next_line):
+                        is_new_entry = True
+
+                    # If next line is a bullet, this line is a Title (Project w/o date on next line)
+                    elif is_bullet(next_line):
+                        is_new_entry = True
+
+        if is_new_entry:
+            current_entry = line
+
+            # If the next line was a date, grab it for metadata and skip it
+            if i + 1 < len(lines) and is_date_range(lines[i+1]):
+                date_str = lines[i+1].strip()
+                current_entry = f"{line} ({date_str})"
+                i += 2  # Skip Title and Date
+            else:
+                i += 1  # Just skip Title
             continue
 
-        # 2b) PROJECTS entry: 一行標題，下一行是 bullet
-        if (
-            current_section == "PROJECTS"
-            and current_entry is None
-            and not is_bullet(line)
-            and not is_section_header(line)
-            and i + 1 < len(lines)
-            and is_bullet(lines[i+1])
-        ):
-            current_entry = line  # e.g. "Financial Argument Mining with LLMs, NTU Spring 2024"
-            i += 1
-            continue
-
-        # 3) BULLET + 多行合併
+        # ---------------------------------------------------------
+        # 3. Capture BULLETS
+        # ---------------------------------------------------------
         if is_bullet(line):
-            bullet = line.lstrip("•- ").strip()
-            j = i + 1
+            # Clean the bullet marker
+            bullet_text = re.sub(r"^[•\-●]\s*", "", line).strip()
 
+            # Handle multi-line bullets (look ahead for continuation)
+            j = i + 1
             while j < len(lines):
                 nxt = lines[j].strip()
 
-                # 下一行是新的 bullet 或 section → 結束
-                if is_bullet(nxt) or is_section_header(nxt):
+                # BREAK conditions (End of bullet):
+                # 1. Next line is a new bullet
+                # 2. Next line is a section header
+                # 3. Next line is a date (start of new entry)
+                if is_bullet(nxt) or is_section_header(nxt) or is_date_range(nxt):
                     break
 
-                # 下一行長得像新的 EXPERIENCE entry → 結束
-                if (
-                    j + 1 < len(lines)
-                    and not is_bullet(nxt)
-                    and is_role_title(lines[j+1])
-                ):
-                    break
-
-                # 其他情況：當作續行
-                bullet += " " + nxt
+                # If none of the above, it's a continuation line. Merge it.
+                bullet_text += " " + nxt
                 j += 1
 
+            # Save the result
             results.append({
                 "section": current_section,
-                "entry": current_entry,
-                "text": bullet
+                "entry": current_entry or "General",
+                "text": bullet_text
             })
 
-            i = j
+            i = j  # Jump parsing index to where we stopped
             continue
 
-        # 4) 其他普通行略過
+        # If line fits no category, skip it (usually address, noise, etc.)
         i += 1
 
     return results
@@ -207,10 +238,18 @@ def extract_structured_education(text: str):
     """
     從 EDUCATION 區塊中抓出：
     - school_name
-    - degree (含年限)
+    - degree (e.g., "M.S. in Data Science", "B.S. in Data Science")
+    - major
+    - dates
     - gpa
     - courses (list of str)
     回傳 list[dict]，每間學校一個 dict。
+
+    Handles formats like:
+    - "M.S. in Data Science Dec 2026(Expected)"
+    - "B.S. in Data Science, GPA: 3.8/4.0 Sep 2020 - Dec 2024"
+    - "Relevant Coursework: ..."
+    - "Coursework: ..."
     """
     metadata = extract_metadata_sections(text)
     edu_text = metadata.get("EDUCATION", "")
@@ -220,20 +259,35 @@ def extract_structured_education(text: str):
     schools = []
     current_school = {}
 
-    date_pattern = re.compile(r"(20\d{2}).*(20\d{2}|expected)", re.IGNORECASE)
-    gpa_pattern = re.compile(r"GPA\s*([0-9]\.[0-9])", re.IGNORECASE)
+    # More flexible patterns
+    date_pattern = re.compile(
+        r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}"
+        r"|"
+        r"\d{4}\s*-\s*\d{4}"
+        r"|"
+        r"(20\d{2}).*(20\d{2}|Expected|expected|Present)",
+        re.IGNORECASE
+    )
+    gpa_pattern = re.compile(r"GPA[:\s]*([0-9]\.[0-9]+(?:/[0-9]\.[0-9]+)?)", re.IGNORECASE)
+    # Updated pattern to match both "B.S." and "BS" formats
+    degree_pattern = re.compile(
+        r"(M\.?S\.?|M\.?A\.?|B\.?S\.?|B\.?A\.?|Ph\.?D\.?|Master|Bachelor)"
+        r".*?"
+        r"(in|of)\s+([A-Za-z\s]+)",
+        re.IGNORECASE
+    )
 
     for line in lines:
 
-        # 1) 判斷新學校：包含 University 或 NTU
-        if "University" in line or "NTU" in line:
+        # 1) 判斷新學校：包含 University, College, Institute
+        if any(word in line for word in ["University", "College", "Institute", "NTU"]):
             if current_school:
                 schools.append(current_school)
 
             current_school = {
                 "school_name": line,
                 "degree": None,
-                "major": None,   # 目前先不拆 major，之後可以再加
+                "major": None,
                 "location": None,
                 "dates": None,
                 "gpa": None,
@@ -241,25 +295,77 @@ def extract_structured_education(text: str):
             }
             continue
 
-        # 2) Degree + dates + GPA（例如 MS / BS 那行）
-        if "Master" in line or "BS" in line:
-            deg_line = line
-            current_school["degree"] = deg_line
+        # 2) Degree line (e.g., "M.S. in Data Science Dec 2026(Expected)" or "BS in Environmental Engineering, BS in Psychology, GPA 3.8/4.0")
+        # Skip lines that start with "Major" - they'll be handled separately
+        deg_match = degree_pattern.search(line)
+        if deg_match and current_school and not line.startswith("Major"):
+            # Extract only the degree part, stop before GPA or dates
+            degree_text = line
 
-            m = date_pattern.search(line)
-            if m:
-                current_school["dates"] = m.group(0)
+            # Remove GPA and everything after it (both "GPA:" and "GPA " formats)
+            degree_text = re.sub(r',?\s*GPA[:\s].*', '', degree_text, flags=re.IGNORECASE)
 
+            # Remove dates (month + year pattern) and everything after
+            degree_text = re.sub(
+                r'\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}.*',
+                '',
+                degree_text,
+                flags=re.IGNORECASE
+            )
+
+            # Remove year ranges like "Sep 2020 - Dec 2024"
+            degree_text = re.sub(r'\s+\d{4}\s*-\s*\d{4}.*', '', degree_text)
+
+            current_school["degree"] = degree_text.strip()
+
+            # Extract ALL majors from the degree line (handles multiple degrees like "BS in X, BS in Y")
+            # Find all "in/of [Major]" patterns
+            major_matches = re.findall(
+                r"(?:in|of)\s+([A-Za-z\s]+?)(?=\s*,\s*(?:B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?|Ph\.?D\.?)|,\s*GPA|$)",
+                line,
+                re.IGNORECASE
+            )
+            if major_matches:
+                # Join multiple majors with comma
+                current_school["major"] = ", ".join([m.strip() for m in major_matches])
+            else:
+                # Fallback to single major pattern
+                major_match = re.search(
+                    r"(?:in|of)\s+([A-Za-z\s,]+?)(?:\s*,|\s*Dec|\s*Jan|\s*Feb|\s*Mar|\s*Apr|\s*May|\s*Jun|\s*Jul|\s*Aug|\s*Sep|\s*Oct|\s*Nov|\s*\d{4}|GPA|$)",
+                    line,
+                    re.IGNORECASE
+                )
+                if major_match:
+                    current_school["major"] = major_match.group(1).strip()
+
+            # Extract dates
+            date_m = date_pattern.search(line)
+            if date_m:
+                current_school["dates"] = date_m.group(0)
+
+            # Extract GPA (case insensitive)
             gpa_m = gpa_pattern.search(line)
             if gpa_m:
                 current_school["gpa"] = gpa_m.group(1)
 
             continue
 
-        # 3) Courses: 行
-        if line.startswith("Courses:"):
-            courses_str = line.replace("Courses:", "").strip()
-            current_school["courses"].append(courses_str)
+        # 3) Major line (if separate from degree)
+        # Only process if we already have a degree (to avoid treating it as a degree)
+        if current_school and current_school.get("degree") and line.startswith("Major"):
+            # Extract major info from "Major in X, Minor in Y" format
+            major_line = line.replace("Major in", "").replace("Major:", "").strip()
+            # If it's already set from the degree line, don't overwrite unless this is more detailed
+            if not current_school["major"] or len(major_line) > len(current_school["major"]):
+                current_school["major"] = major_line
+            continue
+
+        # 4) Coursework lines (case insensitive check)
+        # Matches: "Relevant Coursework:", "Coursework:", "Courses:", "Relevant Courses:"
+        if current_school and re.search(r"(Relevant\s+)?(Coursework|Courses):", line, re.IGNORECASE):
+            courses_str = re.sub(r"^(Relevant\s+)?(Coursework|Courses):\s*", "", line, flags=re.IGNORECASE).strip()
+            if courses_str:
+                current_school["courses"].append(courses_str)
             continue
 
     if current_school:

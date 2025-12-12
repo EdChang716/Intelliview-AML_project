@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Intelliview Coach – Resume Setup</title>
-  <link rel="stylesheet" href="/static/style.css?v=5" />
-  <link rel="stylesheet" href="/static/resume.css?v=5" />
-  <link rel="stylesheet" href="/static/global-nav.css?v=5" />
+  <link rel="stylesheet" href="/static/style.css?v=9" />
+  <link rel="stylesheet" href="/static/resume.css?v=9" />
+  <link rel="stylesheet" href="/static/global-nav.css?v=9" />
 </head>
 
 <body>
@@ -174,7 +174,7 @@
     // 工具：依 entry 分組 bullets
     // ===========================
     function groupEntries(entries) {
-      const grouped = { EXPERIENCE: [], PROJECTS: [] };
+      const grouped = {};
       const byKey = {};
 
       entries.forEach((e) => {
@@ -205,7 +205,8 @@
       const container = document.getElementById("experience-container");
       container.innerHTML = "";
 
-      const sections = ["EXPERIENCE", "PROJECTS"];
+      // Use all sections from the grouped data instead of hardcoded list
+      const sections = Object.keys(currentState.groupedEntries);
       sections.forEach((sec) => {
         const sectionEntries = currentState.groupedEntries[sec] || [];
         if (sectionEntries.length === 0) return;
@@ -362,6 +363,12 @@
         degreeInput.placeholder = "Degree / Program";
         degreeInput.dataset.field = "degree";
 
+        const majorInput = document.createElement("input");
+        majorInput.className = "edu-input";
+        majorInput.value = s.major || "";
+        majorInput.placeholder = "Major / Field of Study";
+        majorInput.dataset.field = "major";
+
         const datesInput = document.createElement("input");
         datesInput.className = "edu-input";
         datesInput.value = s.dates || "";
@@ -376,6 +383,7 @@
 
         card.appendChild(schoolInput);
         card.appendChild(degreeInput);
+        card.appendChild(majorInput);
         card.appendChild(datesInput);
         card.appendChild(gpaInput);
 
@@ -585,12 +593,24 @@
         // Populate state
         currentState.project_id = data.project_id;
         currentState.entries = data.entries || [];
-        currentState.metadata = data.metadata || [];
+        currentState.metadata = data.metadata || {};
         currentState.education_structured = data.education_structured || [];
 
         currentState.groupedEntries = groupEntries(currentState.entries);
         currentState.skillsList = splitToTags(currentState.metadata.SKILLS || "");
-        currentState.coursesList = splitToTags(currentState.metadata.COURSES || "");
+
+        // Extract courses from education_structured and merge with metadata.COURSES
+        const educationCourses = [];
+        (data.education_structured || []).forEach(school => {
+          if (school.courses && school.courses.length > 0) {
+            school.courses.forEach(courseStr => {
+              educationCourses.push(courseStr);
+            });
+          }
+        });
+        const metadataCourses = currentState.metadata.COURSES || "";
+        const allCourses = metadataCourses ? metadataCourses + "\n" + educationCourses.join("\n") : educationCourses.join("\n");
+        currentState.coursesList = splitToTags(allCourses);
 
         document.getElementById("meta-other").value = currentState.metadata.OTHER || "";
 
@@ -653,7 +673,20 @@
         currentState.education_structured = data.education_structured || [];
         currentState.groupedEntries = groupEntries(currentState.entries);
         currentState.skillsList = splitToTags(currentState.metadata.SKILLS || "");
-        currentState.coursesList = splitToTags(currentState.metadata.COURSES || "");
+
+        // Extract courses from education_structured and merge with metadata.COURSES
+        const educationCourses = [];
+        (data.education_structured || []).forEach(school => {
+          if (school.courses && school.courses.length > 0) {
+            school.courses.forEach(courseStr => {
+              educationCourses.push(courseStr);
+            });
+          }
+        });
+        const metadataCourses = currentState.metadata.COURSES || "";
+        const allCourses = metadataCourses ? metadataCourses + "\n" + educationCourses.join("\n") : educationCourses.join("\n");
+        currentState.coursesList = splitToTags(allCourses);
+
         document.getElementById("meta-other").value = currentState.metadata.OTHER || "";
 
         renderExperienceEditor();

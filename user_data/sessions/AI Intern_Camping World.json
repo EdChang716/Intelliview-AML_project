@@ -1,0 +1,50 @@
+{
+  "profile_id": "AI Intern_Camping World",
+  "turns": [
+    {
+      "timestamp": "2025-12-12T05:28:28.951870Z",
+      "mode": "auto",
+      "behavioral_type": null,
+      "entry_key": null,
+      "question": "Can you describe a time when you were tasked with a project or assignment that had ambiguous or unclear requirements related to artificial intelligence or software development? How did you approach the situation, what steps did you take to clarify your understanding, and what was the outcome of your efforts?",
+      "user_answer": "Okay, so I was in an applied machine learning class and we were asked to do a project about anything regarding as long as it is related to artificial intelligence and we use one kind of machine learning algorithms. So at the beginning we were pretty confused because we don't know we don't know exactly where to start. So several we the steps we decided to do is to first have a review of what we have learned over the semester and then we also ask professors about what you mean and what the rubrics is and then take a look at it and several times and then we realized that maybe the professor he wanted us to think about what we can possibly learn from the cutting edge technology and what is the innovation that we can gain from the machine learning usage application and the usage and from this we decided to build an application that no one has ever come and it become really successful.",
+      "sample_answer": null,
+      "bullets": [
+        {
+          "section": "PROJECTS",
+          "entry": "Ernst & Young",
+          "text": "Applied pre-trained AI models to label product types for non-standardized goods, significantly reducing manual labeling time by automatically classifying up to 15,000 items per minute."
+        },
+        {
+          "section": "PROJECTS",
+          "entry": "Ernst & Young",
+          "text": "Fine-tuned OpenAI models and implemented RAG pipelines in Python to extract insights from knowledge documents, achieving 95% accuracy and enabling clients to validate model robustness."
+        },
+        {
+          "section": "PROJECTS",
+          "entry": "Deepfake Detection Pipeline with CNN–ViT Architecture and XAI Integration",
+          "text": "Developed a deepfake-detection pipeline using CNNs and Vision Transformers, achieving 96% accuracy and integrating XAI (Grad-CAM + LLM) into an interactive user interface."
+        },
+        {
+          "section": "PROJECTS",
+          "entry": "Ernst & Young",
+          "text": "Implemented a two-stage ML classifier for imbalanced fraud data, achieving 85% accuracy while maintaining target recall, and reducing false positives in insurance applications."
+        },
+        {
+          "section": "PROJECTS",
+          "entry": "Ernst & Young",
+          "text": "Served as a Tableau courses developer and instructor, guiding 200+ stakeholders across 5 departments through migration from spreadsheet system to a visualized data analysis platform."
+        }
+      ],
+      "score": 4,
+      "strengths": "The candidate demonstrates a willingness to seek clarification and engage with professors, showing initiative in a project with ambiguous requirements.",
+      "improvements": "The answer lacks a clear structure and logical flow, making it difficult to follow. Additionally, it could benefit from more specific details about the project and its outcomes.",
+      "thread_id": "thread-1765517138371-nc3lw8",
+      "is_followup": false,
+      "media_type": null,
+      "media_filename": null,
+      "media_duration_ms": null,
+      "media": null
+    }
+  ]
+}

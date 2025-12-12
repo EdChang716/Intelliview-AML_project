@@ -1,20 +1,24 @@
 [
   {
     "school_name": "Columbia University New York, NY",
-    "degree": null,
-    "major": null,
+    "degree": "M.S. in Data Science",
+    "major": "Data Science",
     "location": null,
-    "dates": null,
+    "dates": "Dec 2026",
     "gpa": null,
-    "courses": []
+    "courses": [
+      "Exploratory data analysis, Computer Vision, Operational Logistics, Machine Learning, Poisson Process"
+    ]
   },
   {
     "school_name": "Boston University Boston, MA",
-    "degree": null,
-    "major": null,
+    "degree": "B.S. in Data Science",
+    "major": "Data Science, Minor in Business Administration",
     "location": null,
-    "dates": null,
-    "gpa": null,
-    "courses": []
+    "dates": "Sep 2020",
+    "gpa": "3.8/4.0",
+    "courses": [
+      "Bayesian Statistics, Computer Systems, Database Design, Data Structure Algorithms, Deep Learning, Hypothesis"
+    ]
   }
 ]
