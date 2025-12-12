@@ -723,6 +723,49 @@
     // ===========================
     setupTagInput("new-skill-input", "add-skill-btn", "skills");
     setupTagInput("new-course-input", "add-course-btn", "courses");
+
+
+    // ===========================
+    // 20261209 新增 Add Experience / Project 的邏輯 
+    // ===========================
+    function addNewEntry(sectionName) {
+      // 1. 【關鍵步驟】在新增之前，先從畫面收集目前使用者已經輸入的內容
+      // 這樣才不會因為重新渲染 (render) 而導致剛剛打的字消失
+      const currentFlatEntries = collectEntriesFromEditor();
+      
+      // 2. 更新全域狀態
+      currentState.groupedEntries = groupEntries(currentFlatEntries);
+
+      // 3. 確保該區塊陣列存在
+      if (!currentState.groupedEntries[sectionName]) {
+        currentState.groupedEntries[sectionName] = [];
+      }
+
+      // 4. 推入一個新的空白項目
+      currentState.groupedEntries[sectionName].push({
+        section: sectionName,
+        entry: "",       
+        bullets: [""]    
+      });
+
+      // 5. 重新渲染畫面 (這時候狀態已經包含舊的輸入 + 新的空白項)
+      renderExperienceEditor();
+    }
+    
+    const addExpBtn = document.getElementById("add-experience-btn");
+    if (addExpBtn) {
+      addExpBtn.addEventListener("click", function() {
+        addNewEntry("EXPERIENCE");
+      });
+    }
+
+    const addProjBtn = document.getElementById("add-project-btn");
+    if (addProjBtn) {
+      addProjBtn.addEventListener("click", function() {
+        addNewEntry("PROJECTS");
+      });
+    }
+
   </script>
 </body>
 
