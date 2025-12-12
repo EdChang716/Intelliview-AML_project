@@ -17,6 +17,15 @@
       "resume_id": "resume_ds",
       "created_at": "2025-12-08T22:26:35.481169Z",
       "updated_at": "2025-12-08T22:31:21.949145Z"
+    },
+    {
+      "profile_id": "AI Intern_Camping World",
+      "job_title": "AI Intern",
+      "company": "Camping World",
+      "jd_text": "About the role: \n\nWe are seeking a highly motivated and curious Summer Intern to join our team and focus on developing next-generation Agentic AI systems, including intelligent agents, automation workflows, and conversational chatbots. This role is ideal for a student passionate about artificial intelligence, prompt engineering, autonomous agents, and applying modern LLM tools to real business problems. \n\nYou will work closely with our AI and product teams to prototype agent workflows, test emerging AI frameworks, support integration efforts, and help operationalize AI capabilities across the organization. \n\n  \n\nCandidates must have the ability to work in our Chicago or Lincolnshire office on a hybrid basis (3 days in office, 2 days remote) for 10 weeks, beginning in June of 2026. \n\n \n\nWhat You’ll Do: \n\nAssist in designing, building, and testing Agentic AI workflows using LLMs (Google Gemini, OpenAI, Anthropic, etc.) \n\nDevelop and refine autonomous agents for business operations, data processing, and internal automation. \n\nHelp create and optimize chatbots for customer service, sales enablement, and internal knowledge tools. \n\nResearch and evaluate new frameworks (LangChain, AutoGPT-style agents, orchestration platforms). \n\nSupport prompt engineering, testing, and documentation of AI tools. \n\nWork with engineering teams to help integrate AI agents into existing systems or APIs. \n\nAnalyze agent performance and help iterate to improve reliability, accuracy, and efficiency. \n\nContribute to internal AI knowledge bases, demos, and proof-of-concept projects. \n\n \n\nWhat You’ll Need to Have for the Role: \n\nCurrently pursuing a degree in Computer Science, Data Science, AI/ML, Engineering, or a related field. \n\nFamiliarity with Python or JavaScript; ability to write clean, organized code. \n\nInterest or experience with LLMs, prompting, RAG, or AI agent frameworks. \n\nStrong problem-solving abilities and willingness to experiment with new technologies. \n\nAbility to work independently and collaboratively in a fast-paced environment. \n\nStrong communication skills and curiosity about real-world AI applications.",
+      "resume_id": "testtest",
+      "created_at": "2025-12-10T14:50:32.950519Z",
+      "updated_at": "2025-12-10T14:50:32.950519Z"
     }
   ]
 }

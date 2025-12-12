@@ -80,3 +80,6 @@ user_data/mock/media
 # Model (fine-tuned too big)
 # =============================
 models/jdq_bullet_finetuned/
+models/ft_mpnet_v2/model.safetensors
+models/ft_miniLM_v2/model.safetensors
+*.zip

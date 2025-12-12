@@ -1,0 +1,37 @@
+[
+  {
+    "section": "PROJECTS",
+    "entry": "Ernst & Young",
+    "text": "Fine-tuned OpenAI models and implemented RAG pipelines in Python to extract insights from knowledge documents, achieving 95% accuracy and enabling clients to validate model robustness."
+  },
+  {
+    "section": "PROJECTS",
+    "entry": "Ernst & Young",
+    "text": "Applied pre-trained AI models to label product types for non-standardized goods, significantly reducing manual labeling time by automatically classifying up to 15,000 items per minute."
+  },
+  {
+    "section": "PROJECTS",
+    "entry": "Ernst & Young",
+    "text": "Directed team members deploying and scaling EY's global audit system with Podman on Red Hat Linux, shortening client legal review duration by 40% and improving system adaptability."
+  },
+  {
+    "section": "PROJECTS",
+    "entry": "Ernst & Young",
+    "text": "Designed anomaly detection rules with Python and SQL for banking workflows, reducing manual reviews by 90% and providing interactive Tableau dashboard for clients to detect fraud in real time."
+  },
+  {
+    "section": "PROJECTS",
+    "entry": "Ernst & Young",
+    "text": "Implemented a two-stage ML classifier for imbalanced fraud data, achieving 85% accuracy while maintaining target recall, and reducing false positives in insurance applications."
+  },
+  {
+    "section": "PROJECTS",
+    "entry": "Ernst & Young",
+    "text": "Served as a Tableau courses developer and instructor, guiding 200+ stakeholders across 5 departments through migration from spreadsheet system to a visualized data analysis platform."
+  },
+  {
+    "section": "PROJECTS",
+    "entry": "Deepfake Detection Pipeline with CNN–ViT Architecture and XAI Integration",
+    "text": "Developed a deepfake-detection pipeline using CNNs and Vision Transformers, achieving 96% accuracy and integrating XAI (Grad-CAM + LLM) into an interactive user interface."
+  }
+]
