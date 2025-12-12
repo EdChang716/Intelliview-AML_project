@@ -1,20 +1,20 @@
 [
   {
     "school_name": "Columbia University New York, NY",
-    "degree": "",
+    "degree": null,
     "major": null,
     "location": null,
-    "dates": "",
-    "gpa": "",
+    "dates": null,
+    "gpa": null,
     "courses": []
   },
   {
     "school_name": "Boston University Boston, MA",
-    "degree": "",
+    "degree": null,
     "major": null,
     "location": null,
-    "dates": "",
-    "gpa": "",
+    "dates": null,
+    "gpa": null,
     "courses": []
   }
 ]
