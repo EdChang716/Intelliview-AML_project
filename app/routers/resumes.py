@@ -44,6 +44,24 @@ async def upload_resume(
     metadata = extract_metadata_sections(raw_text)
     education_structured = extract_structured_education(raw_text)
 
+    # 20251209 Append 
+    # =================================================
+    # 【新增】防呆機制：如果解析失敗，塞一個預設值
+    # =================================================
+    if not education_structured:
+        education_structured = [{
+            "school_name": "School Not Found (Please Edit)",
+            "degree": "",
+            "dates": "",
+            "gpa": ""
+        }]
+    # =================================================
+
+    # Save raw parse results (edited version will be saved later)
+    with open(parsed_dir / "experience_entries.json", "w", encoding="utf-8") as f:
+        json.dump(entries, f, ensure_ascii=False, indent=2)
+
+
     # Save raw parse results (edited version will be saved later)
     with open(parsed_dir / "experience_entries.json", "w", encoding="utf-8") as f:
         json.dump(entries, f, ensure_ascii=False, indent=2)
