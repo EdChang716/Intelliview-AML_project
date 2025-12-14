@@ -68,8 +68,19 @@ staticfiles/
 # =============================
 # Uploaded / user data (optional)
 # =============================
-user_data/session_media
-user_data/mock/media
+# Ignore all user data except README files
+user_data/*
+!user_data/README.md
+!user_data/*/
+!user_data/*/README.md
+
+# Explicitly ignore common user data subdirectories
+user_data/raw/
+user_data/parsed/
+user_data/embeddings/
+user_data/mock/sessions/
+user_data/mock/media/
+user_data/mock/results/
 
 # =============================
 # PDFs / Resume parsing artifacts (optional)
