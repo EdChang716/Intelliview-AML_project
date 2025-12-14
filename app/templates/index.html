@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Intelliview Coach – Resume Setup</title>
-  <link rel="stylesheet" href="/static/style.css?v=9" />
-  <link rel="stylesheet" href="/static/resume.css?v=9" />
-  <link rel="stylesheet" href="/static/global-nav.css?v=9" />
+  <link rel="stylesheet" href="/static/style.css?v=10" />
+  <link rel="stylesheet" href="/static/resume.css?v=10" />
+  <link rel="stylesheet" href="/static/global-nav.css?v=10" />
 </head>
 
 <body>
@@ -181,10 +181,12 @@
         const section = e.section || "EXPERIENCE";
         const entry = e.entry || "Untitled Entry";
         const text = e.text || "";
+        const location = e.location || "";
+        const dates = e.dates || "";
 
         const key = section + "||" + entry;
         if (!byKey[key]) {
-          byKey[key] = { section, entry, bullets: [] };
+          byKey[key] = { section, entry, location, dates, bullets: [] };
         }
         byKey[key].bullets.push(text);
       });
@@ -221,13 +223,62 @@
           wrapper.dataset.section = sec;
           wrapper.dataset.index = idx;
 
-          // entry title
+          // Title row with delete icon
+          const titleRow = document.createElement("div");
+          titleRow.style.display = "flex";
+          titleRow.style.alignItems = "center";
+          titleRow.style.gap = "8px";
+          titleRow.style.marginBottom = "8px";
+
           const titleInput = document.createElement("input");
           titleInput.className = "entry-title";
           titleInput.value = entryObj.entry || "";
-          titleInput.placeholder =
-            sec === "EXPERIENCE" ? "Company — Role" : "Project title";
-          wrapper.appendChild(titleInput);
+          titleInput.placeholder = sec === "EXPERIENCE" ? "Company — Role" : "Project title";
+          titleInput.style.flex = "1";
+
+          const deleteIcon = document.createElement("button");
+          deleteIcon.type = "button";
+          deleteIcon.innerHTML = "🗑️";
+          deleteIcon.className = "icon-btn";
+          deleteIcon.title = "Delete Entry";
+          deleteIcon.style.background = "none";
+          deleteIcon.style.border = "none";
+          deleteIcon.style.cursor = "pointer";
+          deleteIcon.style.fontSize = "18px";
+          deleteIcon.style.padding = "4px";
+          deleteIcon.onclick = () => {
+            const list = currentState.groupedEntries[sec];
+            list.splice(idx, 1);
+            renderExperienceEditor();
+          };
+
+          titleRow.appendChild(titleInput);
+          titleRow.appendChild(deleteIcon);
+          wrapper.appendChild(titleRow);
+
+          // Location and Dates row
+          const metaRow = document.createElement("div");
+          metaRow.style.display = "flex";
+          metaRow.style.gap = "8px";
+          metaRow.style.marginBottom = "8px";
+
+          const locationInput = document.createElement("input");
+          locationInput.className = "entry-meta-input";
+          locationInput.value = entryObj.location || "";
+          locationInput.placeholder = "Location (e.g., Boston, MA)";
+          locationInput.dataset.field = "location";
+          locationInput.style.flex = "1";
+
+          const datesInput = document.createElement("input");
+          datesInput.className = "entry-meta-input";
+          datesInput.value = entryObj.dates || "";
+          datesInput.placeholder = "Dates (e.g., Apr 2023 - May 2024)";
+          datesInput.dataset.field = "dates";
+          datesInput.style.flex = "1";
+
+          metaRow.appendChild(locationInput);
+          metaRow.appendChild(datesInput);
+          wrapper.appendChild(metaRow);
 
           // bullets container
           const bulletsLabel = document.createElement("div");
@@ -291,16 +342,6 @@
           };
           btnRow.appendChild(addBulletBtn);
 
-          const deleteEntryBtn = document.createElement("button");
-          deleteEntryBtn.type = "button";
-          deleteEntryBtn.textContent = "Delete Entry";
-          deleteEntryBtn.onclick = () => {
-            const list = currentState.groupedEntries[sec];
-            list.splice(idx, 1);
-            renderExperienceEditor();
-          };
-          btnRow.appendChild(deleteEntryBtn);
-
           wrapper.appendChild(btnRow);
           container.appendChild(wrapper);
         });
@@ -316,6 +357,13 @@
       entryCards.forEach((card) => {
         const section = card.dataset.section || "EXPERIENCE";
         const title = card.querySelector(".entry-title").value.trim();
+
+        // Get location and dates
+        const locationInput = card.querySelector('[data-field="location"]');
+        const datesInput = card.querySelector('[data-field="dates"]');
+        const location = locationInput ? locationInput.value.trim() : "";
+        const dates = datesInput ? datesInput.value.trim() : "";
+
         const bulletInputs = card.querySelectorAll(".bullet-input");
 
         bulletInputs.forEach((inp) => {
@@ -324,6 +372,8 @@
           entries.push({
             section,
             entry: title || "Untitled Entry",
+            location,
+            dates,
             text
           });
         });

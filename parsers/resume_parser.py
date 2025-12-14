@@ -45,9 +45,33 @@ def is_section_header(line: str) -> bool:
 
 
 def is_bullet(line: str) -> bool:
-    """Detects standard bullet points."""
+    """
+    Detects standard bullet points.
+    Handles: •, -, ●, and common PDF extraction artifacts like \uf0b7
+    """
     clean = line.strip()
-    return clean.startswith("•") or clean.startswith("- ") or clean.startswith("●")
+    if not clean:
+        return False
+
+    # Check for standard bullets
+    if clean.startswith("•") or clean.startswith("- ") or clean.startswith("●"):
+        return True
+
+    # Check for PDF extraction bullets (private use Unicode characters)
+    # Common bullet characters in PDFs: \uf0b7, \uf0a7, \uf0d8, etc.
+    first_char = clean[0]
+    if ord(first_char) in range(0xF000, 0xF100):  # Private Use Area
+        return True
+
+    # Check for indented lines that start with common bullet words (as backup)
+    # This helps with PDFs where bullets are converted to spaces
+    if line.startswith("  ") or line.startswith("\t"):
+        # Indented line - check if it looks like a bullet
+        words = clean.split()
+        if words and words[0][0].isupper():  # Starts with capital letter
+            return True
+
+    return False
 
 
 def is_date_range(line: str) -> bool:
@@ -107,7 +131,8 @@ def parse_resume_entries(text: str):
         is_new_entry = False
 
         # Check constraints to avoid false positives in random text
-        if current_section in ["EXPERIENCE", "WORK EXPERIENCE", "PROJECTS", "LEADERSHIP EXPERIENCE"]:
+        # Use substring matching to catch all variants (WORK EXPERIENCE, PROJECT EXPERIENCE, etc.)
+        if "EXPERIENCE" in current_section or "PROJECT" in current_section:
             if not is_bullet(line):
                 # Look ahead 1 line
                 if i + 1 < len(lines):
@@ -137,8 +162,18 @@ def parse_resume_entries(text: str):
         # 3. Capture BULLETS
         # ---------------------------------------------------------
         if is_bullet(line):
-            # Clean the bullet marker
-            bullet_text = re.sub(r"^[•\-●]\s*", "", line).strip()
+            # Clean the bullet marker - remove standard bullets and PDF artifacts
+            bullet_text = line.strip()
+
+            # Remove standard bullet characters
+            bullet_text = re.sub(r"^[•\-●]\s*", "", bullet_text)
+
+            # Remove PDF private use area characters (0xF000-0xF0FF)
+            # These are common bullet characters in PDFs like \uf0b7, \uf0a7, \uf0d8
+            if bullet_text and ord(bullet_text[0]) in range(0xF000, 0xF100):
+                bullet_text = bullet_text[1:].strip()
+
+            bullet_text = bullet_text.strip()
 
             # Handle multi-line bullets (look ahead for continuation)
             j = i + 1
@@ -197,8 +232,8 @@ def extract_metadata_sections(text: str):
         if line.isupper() and len(line) >= 3:
             up = line.upper()
 
-            # 不把 EXPERIENCE/PROJECTS 納入 metadata
-            if up in ["EXPERIENCE", "PROJECTS"]:
+            # 不把 EXPERIENCE/PROJECTS 納入 metadata (including variants)
+            if "EXPERIENCE" in up or "PROJECT" in up:
                 current = None
                 continue
 
@@ -206,8 +241,9 @@ def extract_metadata_sections(text: str):
                 current = up
                 continue
 
-            if up in ["EDUCATION", "SKILLS"]:
-                current = up
+            # Use substring matching to catch variants like "TECHNICAL SKILLS", "CORE SKILLS"
+            if up == "EDUCATION" or "SKILL" in up:
+                current = "SKILLS" if "SKILL" in up else up
                 continue
 
             current = "OTHER"
@@ -270,10 +306,13 @@ def extract_structured_education(text: str):
     )
     gpa_pattern = re.compile(r"GPA[:\s]*([0-9]\.[0-9]+(?:/[0-9]\.[0-9]+)?)", re.IGNORECASE)
     # Updated pattern to match both "B.S." and "BS" formats
+    # Also matches "MS, Data Science" format (comma-separated)
+    # Must match degree at START of line or as complete word
     degree_pattern = re.compile(
-        r"(M\.?S\.?|M\.?A\.?|B\.?S\.?|B\.?A\.?|Ph\.?D\.?|Master|Bachelor)"
-        r".*?"
-        r"(in|of)\s+([A-Za-z\s]+)",
+        r"^(M\.?S\.?|M\.?A\.?|B\.?S\.?|B\.?A\.?|Ph\.?D\.?|Master|Bachelor)"
+        r"[\s,]+"
+        r"(in|of|,)?\s*"
+        r"([A-Za-z\s&]+)",
         re.IGNORECASE
     )
 
@@ -318,25 +357,35 @@ def extract_structured_education(text: str):
 
             current_school["degree"] = degree_text.strip()
 
-            # Extract ALL majors from the degree line (handles multiple degrees like "BS in X, BS in Y")
-            # Find all "in/of [Major]" patterns
+            # Extract major from the degree line
+            # Try multiple patterns:
+
+            # Pattern 1: "in/of [Major]" format (B.S. in Data Science)
             major_matches = re.findall(
                 r"(?:in|of)\s+([A-Za-z\s]+?)(?=\s*,\s*(?:B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?|Ph\.?D\.?)|,\s*GPA|$)",
                 line,
                 re.IGNORECASE
             )
             if major_matches:
-                # Join multiple majors with comma
                 current_school["major"] = ", ".join([m.strip() for m in major_matches])
             else:
-                # Fallback to single major pattern
-                major_match = re.search(
-                    r"(?:in|of)\s+([A-Za-z\s,]+?)(?:\s*,|\s*Dec|\s*Jan|\s*Feb|\s*Mar|\s*Apr|\s*May|\s*Jun|\s*Jul|\s*Aug|\s*Sep|\s*Oct|\s*Nov|\s*\d{4}|GPA|$)",
+                # Pattern 2: Comma-separated format (MS, Data Science)
+                comma_match = re.search(
+                    r"^(?:M\.?S\.?|M\.?A\.?|B\.?S\.?|B\.?A\.?|Ph\.?D\.?),\s+([A-Za-z\s&]+?)(?:\s+(?:Expected|Sep|Oct|Nov|Dec|Jan|Feb|Mar|Apr|May|Jun|Jul|\d{4})|$)",
                     line,
                     re.IGNORECASE
                 )
-                if major_match:
-                    current_school["major"] = major_match.group(1).strip()
+                if comma_match:
+                    current_school["major"] = comma_match.group(1).strip()
+                else:
+                    # Pattern 3: Fallback to "in/of" without strict boundaries
+                    major_match = re.search(
+                        r"(?:in|of)\s+([A-Za-z\s,]+?)(?:\s*,|\s*Dec|\s*Jan|\s*Feb|\s*Mar|\s*Apr|\s*May|\s*Jun|\s*Jul|\s*Aug|\s*Sep|\s*Oct|\s*Nov|\s*\d{4}|GPA|$)",
+                        line,
+                        re.IGNORECASE
+                    )
+                    if major_match:
+                        current_school["major"] = major_match.group(1).strip()
 
             # Extract dates
             date_m = date_pattern.search(line)
