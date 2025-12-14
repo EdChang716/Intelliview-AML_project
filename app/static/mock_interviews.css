@@ -12,10 +12,10 @@ body {
   color: #111827;
 }
 
-/* 和首頁一致的淡藍背景 */
+/* Modern gradient background with subtle color zones */
 body {
-  background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
-    radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
 }
 
 .app-container {
@@ -36,7 +36,7 @@ body {
   gap: 16px;
 }
 
-/* 題目 Banner：整頁最上面的大卡片 */
+/* 題目 Banner：整頁最上面的大卡片 - Enhanced with vibrant color */
 .question-banner {
   position: sticky;
   top: 64px; /* 大概在 nav 下方 */
@@ -44,12 +44,12 @@ body {
 }
 
 .question-banner-inner {
-  background: rgba(255, 255, 255, 0.96);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   backdrop-filter: blur(14px);
   border-radius: 20px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
-  padding: 14px 18px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 60px rgba(99, 102, 241, 0.4);
+  padding: 20px 24px;
 }
 
 .question-banner-top {
@@ -61,25 +61,29 @@ body {
 
 .question-tag {
   font-size: 12px;
-  font-weight: 500;
-  color: #2563eb;
-  background: #eff6ff;
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .question-meta {
   font-size: 12px;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
 .question-text {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  line-height: 1.5;
-  color: #111827;
+  line-height: 1.6;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* 下方左右兩欄：左錄影、右 hints */
@@ -92,15 +96,15 @@ body {
 }
 
 /* ============================
-   左側：錄影卡片
+   左側：錄影卡片 - Enhanced with gradient background
    ============================ */
 
 .interview-container {
-  background: #ffffff;
-  border-radius: 22px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
-  padding: 18px 20px 18px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 25px 60px rgba(99, 102, 241, 0.25);
+  padding: 20px 24px 24px;
 }
 
 .video-shell {
@@ -212,41 +216,49 @@ body {
   transform: none;
 }
 
-/* 主按鈕：開始錄影 */
+/* 主按鈕：開始錄影 - Enhanced gradient */
 .start-btn {
-  background: #2563eb;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: #ffffff;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+  font-weight: 600;
 }
 
 .start-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: translateY(-0.5px);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.5);
 }
 
-/* 次要按鈕 */
+/* 次要按鈕 - Enhanced with subtle gradient */
 .next-btn {
-  background: #ffffff;
-  color: #111827;
+  background: linear-gradient(145deg, #ffffff 0%, #f9fafb 100%);
+  color: #374151;
   border-color: #d1d5db;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .next-btn:hover:not(:disabled) {
-  background: #f3f4f6;
-  transform: translateY(-0.5px);
+  background: linear-gradient(145deg, #f9fafb 0%, #f3f4f6 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-/* 結束按鈕 */
+/* 結束按鈕 - Enhanced with gradient */
 .end-btn {
   margin-left: auto;
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #fecaca;
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
 }
 
 .end-btn:hover:not(:disabled) {
-  background: #fecaca;
-  transform: translateY(-0.5px);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
 }
 
 /* Timer + status 一列 */
@@ -261,21 +273,28 @@ body {
 .timer-row {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 8px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: #0f172a;
-  color: #e5e7eb;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
   font-size: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .timer-label {
-  opacity: 0.8;
+  opacity: 0.9;
+  font-weight: 500;
 }
 
 .timer-value {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .status-text {
@@ -285,57 +304,126 @@ body {
 }
 
 /* ============================
-   右側：Coaching hints
+   右側：Coaching hints - Redesigned with collapsible sections
    ============================ */
 
 .hints-panel {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border-radius: 20px;
-  border: 1px solid #e5e7eb;
-  padding: 16px 18px 18px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0;
+  box-shadow: 0 20px 50px rgba(99, 102, 241, 0.2);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  overflow: hidden;
   position: sticky;
   top: 96px; /* 題目 banner 之下 */
 }
 
 .hints-panel h3 {
-  margin: 0 0 6px;
-  font-size: 14px;
+  margin: 0;
+  padding: 16px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Collapsible hint sections */
+.hint-collapsible {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.hint-collapsible:last-child {
+  border-bottom: none;
+}
+
+.hint-toggle {
+  width: 100%;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  color: #374151;
+  transition: background-color 0.2s ease;
+}
+
+.hint-toggle:hover {
+  background: #f9fafb;
+}
+
+.hint-toggle-icon {
+  font-size: 12px;
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+
+.hint-toggle.active .hint-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.hint-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background: #fafafa;
+}
+
+.hint-content.active {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.hint-content-inner {
+  padding: 12px 18px 16px;
 }
 
 .hint-box {
-  border-radius: 14px;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  padding: 10px 12px;
-  max-height: 420px;
-  overflow-y: auto;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-height: none;
+  overflow-y: visible;
 }
 
 .hint-empty {
   font-size: 13px;
   color: #6b7280;
   margin: 0;
+  padding: 16px 18px;
+  text-align: center;
+}
+
+.hint-section {
+  margin-bottom: 12px;
+}
+
+.hint-section:last-child {
+  margin-bottom: 0;
 }
 
 .hint-section + .hint-section {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed #e5e7eb;
+  margin-top: 0;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .hint-section h4 {
-  margin: 0 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6366f1;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 
 .hint-section ul {
@@ -346,12 +434,24 @@ body {
 .hint-section li {
   font-size: 13px;
   color: #374151;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.hint-section p {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .hint-entry {
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: #6366f1;
+  background: #eff6ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 /* ============================

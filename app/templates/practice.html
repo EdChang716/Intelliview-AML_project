@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Practice – Intelliview Coach</title>
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="stylesheet" href="/static/practice.css" />
-  <link rel="stylesheet" href="/static/global-nav.css" />
+  <link rel="stylesheet" href="/static/style.css?v=12" />
+  <link rel="stylesheet" href="/static/practice.css?v=12" />
+  <link rel="stylesheet" href="/static/global-nav.css?v=12" />
 
   <!-- 專門針對「當前題目高亮、舊題目變淡」的覆寫樣式 -->
   <style>
@@ -26,14 +27,17 @@
       background: #f9fafb;
       opacity: 0.65;
     }
+
     .practice-question-card-previous .small-label {
       color: #9ca3af;
     }
+
     .practice-question-card-previous p {
       color: #6b7280;
     }
   </style>
 </head>
+
 <body>
   <div class="app-container">
     <!-- Top nav -->
@@ -51,106 +55,48 @@
     </header>
 
     <main class="practice-page">
-      <section class="card practice-layout">
-        <!-- LEFT COLUMN: Profile info / progress / history -->
-        <aside class="practice-sidebar">
-          <div class="sidebar-section">
-            <h3 class="sidebar-title">Profile</h3>
-            <p class="practice-profile-id">
-              ID: {{ profile_id }}
-            </p>
-          </div>
-
-          <div class="sidebar-section">
-            <div class="practice-meta">
-              <div>
-                <div class="small-label">Mode</div>
-                <select id="question-mode" class="select">
-                  <option value="auto">Auto (from JD)</option>
-                  <option value="behavioral">Behavioral</option>
-                  <option value="project">Project deep dive</option>
-                  <option value="technical">Technical</option>
-                  <option value="case">Case reasoning</option>
-                  <option value="custom">Custom question</option>
-                </select>
-              </div>
-              <div>
-                <div class="small-label">Status</div>
-                <div id="progress-chip" class="status-chip status-loading">
-                  <span class="status-dot"></span>
-                  <span id="progress-text">Q1 · Generating sample answer…</span>
-                </div>
-              </div>
+      <!-- Top bar with job title and status -->
+      <div class="practice-top-bar">
+        <div class="top-bar-left">
+          <a href="/profiles" class="back-btn" title="Back to Profiles">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="back-icon" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </a>
+          <button class="hamburger-btn" id="hamburger-btn" onclick="toggleDrawer()">
+            <span class="hamburger-icon">☰</span>
+          </button>
+          <div class="top-bar-info">
+            <h1 class="job-title" id="job-title">{{ job_title }}{% if company %}, {{ company }}{% endif %}</h1>
+            <div id="progress-chip-top" class="status-chip status-loading">
+              <span class="status-dot"></span>
+              <span id="progress-text-top">Q1 · Ready</span>
             </div>
           </div>
+        </div>
+        <div class="top-bar-right">
+          <!-- Toggle for AI Helper Column -->
+          <label class="toggle-switch">
+            <input type="checkbox" id="show-helper-toggle" onchange="toggleHelperColumn()">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Show AI Coach</span>
+          </label>
+        </div>
+      </div>
 
-          <!-- Behavioral subtype selector -->
-          <div id="behavioral-type-wrapper" class="sidebar-section" style="display: none;">
-            <div class="small-label">Behavioral focus</div>
-            <select id="behavioral-type-select" class="select">
-              <option value="random">Random</option>
-              <option value="teamwork">Teamwork</option>
-              <option value="conflict">Conflict</option>
-              <option value="leadership">Leadership</option>
-              <option value="failure">Failure / mistakes</option>
-              <option value="strengths_weaknesses">Strengths & weaknesses</option>
-            </select>
-          </div>
+      <!-- Main Layout Container (Single or Split) -->
+      <div class="practice-layout-container" id="practice-layout-container">
 
-          <!-- Project / experience selector -->
-          <div id="project-entry-wrapper" class="sidebar-section" style="display: none;">
-            <div class="small-label">Project / experience</div>
-            <select id="project-entry-select" class="select">
-              <option value="">Select an entry…</option>
-            </select>
-          </div>
-
-          <!-- Suggested bullets panel -->
-          <div class="sidebar-section practice-hints">
-            <div class="small-label section-label">Suggested bullets</div>
-            <ul id="bullet-hints" class="bullet-hints">
-              <li>CAYIN – LLM-powered generative ad tool</li>
-              <li>Groundwater LSTM-ED forecasting project</li>
-            </ul>
-          </div>
-
-          <!-- Live stats summary -->
-          <div id="stats-summary" class="sidebar-section practice-stats-box">
-            <div class="small-label section-label">Stats</div>
-            <p>Loading...</p>
-          </div>
-
-          <!-- Practice history -->
-          <div class="sidebar-section practice-history-wrapper">
-            <div class="practice-history-toggle" id="history-toggle">
-              <span>Practice history</span>
-              <button class="btn small-btn ghost-btn" id="history-toggle-btn">View</button>
-            </div>
-
-            <!-- panel 保留但不會被打開 -->
-            <div id="history-panel" class="practice-history-panel" style="display:none;">
-              <ul id="history-list"></ul>
-              <a href="{{ request.url_for('practice_history_page', profile_id=profile_id) }}"
-                 class="history-full-link">
-                View all in detail
-              </a>
-            </div>
-          </div>
-        </aside>
-
-        <!-- MIDDLE COLUMN: Question cards + answer box -->
-        <section class="practice-main">
-          <div class="practice-question-header">
-            <span class="question-tag" id="question-type-tag">Mode</span>
-            <span class="question-counter" id="question-index">Q0</span>
-          </div>
+        <!-- Left/Center: Main Question & Answer -->
+        <section class="practice-main-focused">
+          <!-- REMOVED redundant practice-question-header -->
 
           <!-- Custom question panel -->
           <div id="custom-question-panel" class="custom-question-panel" style="display:none;">
             <div class="small-label">Custom question</div>
-            <textarea id="custom-question-text" rows="3"
-                      class="textarea"
-                      placeholder="Type your interview question here, then click 'Use my own question'."></textarea>
+            <textarea id="custom-question-text" rows="3" class="textarea"
+              placeholder="Type your interview question here, then click 'Use my own question'."></textarea>
           </div>
 
           <!-- Question cards thread -->
@@ -159,9 +105,8 @@
           <!-- Answer input area + recording summary / launcher -->
           <div class="practice-answer-block card-section">
             <div class="small-label">Your answer</div>
-            <textarea id="user-answer" rows="6"
-                      class="textarea"
-                      placeholder="Type your answer here. You can also record an audio/video answer."></textarea>
+            <textarea id="user-answer" rows="6" class="textarea"
+              placeholder="Type your answer here. You can also record an audio/video answer."></textarea>
 
             <div class="recording-controls">
               <div class="recording-buttons">
@@ -180,13 +125,8 @@
                     Video · 00:00
                   </div>
                 </div>
-                <audio id="recording-playback-audio"
-                       class="recording-playback hidden"
-                       controls></audio>
-                <video id="recording-playback-video"
-                       class="recording-playback hidden"
-                       controls
-                       playsinline></video>
+                <audio id="recording-playback-audio" class="recording-playback hidden" controls></audio>
+                <video id="recording-playback-video" class="recording-playback hidden" controls playsinline></video>
               </div>
             </div>
           </div>
@@ -208,49 +148,158 @@
           </div>
         </section>
 
-        <!-- RIGHT COLUMN: Sample answer panel -->
-        <aside class="practice-sample">
-          <div class="sample-header">
-            <span class="small-label">AI sample answer</span>
-            <div class="sample-header-buttons">
-              <button class="btn small-btn ghost-btn" id="generate-answer-btn">
-                Generate sample answer
-              </button>
-              <button class="btn small-btn ghost-btn" id="toggle-sample-btn">
-                Hide / Reveal
-              </button>
+        <!-- Right Column: AI Helper (Hidden by default) -->
+        <aside class="practice-helper-column" id="practice-helper-column" style="display: none;">
+
+          <!-- Suggested bullets panel -->
+          <div class="helper-card">
+            <div class="helper-card-header" onclick="togglePracticeSection('bullets-content')">
+              <div class="helper-header-left">
+                <span class="helper-icon">📝</span>
+                <span class="helper-title">Suggested Bullets</span>
+              </div>
+              <span class="helper-toggle-icon">▼</span>
+            </div>
+            <div class="helper-card-content" id="bullets-content">
+              <ul id="bullet-hints" class="bullet-hints">
+                <li>(Loading...)</li>
+              </ul>
             </div>
           </div>
 
-          <div class="sample-content blurred" id="sample-answer-box">
-            <div id="sample-hint-block" class="sample-hint-card">
-              <div class="small-label">Hint (how to answer)</div>
-              <p id="sample-hint-text">
-                Hint will appear here after you generate a sample answer.
-              </p>
+          <!-- AI Sample Answer Section -->
+          <div class="helper-card">
+            <div class="helper-card-header">
+              <div class="helper-header-left">
+                <span class="helper-icon">✨</span>
+                <span class="helper-title">AI Sample Answer</span>
+              </div>
             </div>
 
-            <div class="sample-answer-block">
-              <div class="small-label">Sample answer</div>
-              <p id="sample-answer-text">
-                Sample answer will appear here after you click "Generate sample answer".
-              </p>
-            </div>
+            <div class="helper-card-content">
+              <div class="helper-actions">
+                <button class="btn small-btn ghost-btn" id="generate-answer-btn">Generate</button>
+                <button class="btn small-btn ghost-btn" id="toggle-sample-btn">Reveal</button>
+              </div>
 
-            <div class="sample-rationale-block">
-              <div class="small-label">Why this works</div>
-              <p id="sample-rationale-text">
-                The coach's explanation will show here.
-              </p>
+              <div class="sample-content blurred" id="sample-answer-box">
+                <div id="sample-hint-block" class="sample-inner-block">
+                  <div class="small-label">Hint</div>
+                  <p id="sample-hint-text">Hint will appear here.</p>
+                </div>
+
+                <div class="sample-answer-block sample-inner-block">
+                  <div class="small-label">Answer</div>
+                  <p id="sample-answer-text">Sample answer will appear here.</p>
+                </div>
+
+                <div class="sample-rationale-block sample-inner-block">
+                  <div class="small-label">Rationale</div>
+                  <p id="sample-rationale-text">Why this works...</p>
+                </div>
+              </div>
+              <p class="sample-hint-footer">Generated using resume bullets + JD.</p>
             </div>
           </div>
-
-          <p class="sample-hint-footer">
-            Generated using selected bullets from your resume and this profile's job description
-            (RAG: JD + question → bullets → LLM). You can adjust bullet selection and regenerate.
-          </p>
         </aside>
-      </section>
+
+      </div>
+
+      <!-- Auxiliary Drawer (Hidden by default) -->
+      <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+      <aside class="auxiliary-drawer" id="auxiliary-drawer">
+        <div class="drawer-header">
+          <div class="drawer-title-wrapper">
+            <!-- Avatar removed as requested -->
+            <div class="profile-header-info">
+              <div class="profile-role-text">{{ job_title }}</div>
+              <div class="profile-id-text">{{ profile_id }}</div>
+            </div>
+          </div>
+          <button class="close-drawer-btn" onclick="closeDrawer()">×</button>
+        </div>
+        <div class="drawer-content scroll-y">
+
+          <div class="drawer-menu-list">
+            <!-- Mode Setting -->
+            <div class="drawer-menu-item">
+              <div class="menu-item-header">
+                <span class="menu-icon">⚙️</span>
+                <span class="menu-label">Practice Mode</span>
+              </div>
+              <div class="menu-control">
+                <select id="question-mode" class="clean-select">
+                  <option value="auto">Auto (from JD)</option>
+                  <option value="behavioral">Behavioral</option>
+                  <option value="project">Project deep dive</option>
+                  <option value="technical">Technical</option>
+                  <option value="case">Case reasoning</option>
+                  <option value="custom">Custom question</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Conditional Sub-settings -->
+            <div id="behavioral-type-wrapper" class="drawer-menu-item submenu-item" style="display: none;">
+              <div class="menu-control">
+                <label class="small-label">Focus Area</label>
+                <select id="behavioral-type-select" class="clean-select">
+                  <option value="random">Random</option>
+                  <option value="teamwork">Teamwork</option>
+                  <option value="conflict">Conflict</option>
+                  <option value="leadership">Leadership</option>
+                  <option value="failure">Failure / mistakes</option>
+                  <option value="strengths_weaknesses">Strengths & weaknesses</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="project-entry-wrapper" class="drawer-menu-item submenu-item" style="display: none;">
+              <div class="menu-control">
+                <label class="small-label">Select Experience</label>
+                <select id="project-entry-select" class="clean-select">
+                  <option value="">Select an entry…</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="drawer-menu-item">
+              <div class="menu-item-header">
+                <span class="menu-icon">📊</span>
+                <span class="menu-label">Session Stats</span>
+              </div>
+              <div id="stats-summary" class="menu-content-box">
+                <p class="stats-text">Loading...</p>
+              </div>
+            </div>
+
+            <!-- History -->
+            <div class="drawer-menu-item">
+              <div class="menu-item-header">
+                <span class="menu-icon">🕒</span>
+                <span class="menu-label">History</span>
+              </div>
+              <div class="menu-actions">
+                <a href="{{ request.url_for('practice_history_page', profile_id=profile_id) }}"
+                  class="btn small-btn secondary-btn full-width-btn">
+                  View Full History
+                </a>
+              </div>
+              <!-- Inline history list could go here if requested, but link is cleaner for "Menu" feel -->
+              <div id="history-panel" class="history-preview-list" style="display:none;">
+                <ul id="history-list"></ul>
+              </div>
+              <div class="practice-history-toggle" id="history-toggle"
+                style="margin-top:8px; display:flex; justify-content:center;">
+                <button class="btn small-btn ghost-btn" id="history-toggle-btn">Show / Hide Recent</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
     </main>
   </div>
 
@@ -274,12 +323,8 @@
         <div id="coach-chat-thread" class="coach-chat-thread"></div>
 
         <div class="coach-input-row">
-          <textarea
-            id="coach-input"
-            class="coach-input"
-            rows="3"
-            placeholder="Tell the coach how you'd like to adjust the answer (e.g., focus on a different project, shorten it, etc.)"
-          ></textarea>
+          <textarea id="coach-input" class="coach-input" rows="3"
+            placeholder="Tell the coach how you'd like to adjust the answer (e.g., focus on a different project, shorten it, etc.)"></textarea>
           <button class="coach-send-btn" id="coach-send-btn">Send</button>
         </div>
       </div>
@@ -307,11 +352,7 @@
       </div>
 
       <div class="rec-preview-shell">
-        <video id="rec-preview-video"
-               class="rec-preview-video"
-               autoplay
-               muted
-               playsinline></video>
+        <video id="rec-preview-video" class="rec-preview-video" autoplay muted playsinline></video>
         <div id="rec-audio-placeholder" class="rec-audio-placeholder hidden">
           Audio-only mode selected. Your microphone will be recorded after you click Start.
         </div>
@@ -371,65 +412,65 @@
     let recDialogStartTop = 0;
 
     // ---- DOM refs ----
-    const questionModeSelect   = document.getElementById("question-mode");
+    const questionModeSelect = document.getElementById("question-mode");
     const behavioralTypeWrapper = document.getElementById("behavioral-type-wrapper");
     const behavioralTypeSelect = document.getElementById("behavioral-type-select");
-    const projectEntryWrapper  = document.getElementById("project-entry-wrapper");
-    const projectEntrySelect   = document.getElementById("project-entry-select");
-    const customQuestionPanel  = document.getElementById("custom-question-panel");
-    const customQuestionText   = document.getElementById("custom-question-text");
-    const customQuestionBtn    = document.getElementById("custom-question-btn");
+    const projectEntryWrapper = document.getElementById("project-entry-wrapper");
+    const projectEntrySelect = document.getElementById("project-entry-select");
+    const customQuestionPanel = document.getElementById("custom-question-panel");
+    const customQuestionText = document.getElementById("custom-question-text");
+    const customQuestionBtn = document.getElementById("custom-question-btn");
 
-    const questionTagSpan      = document.getElementById("question-type-tag");
-    const questionIndexSpan    = document.getElementById("question-index");
-    const chatThread           = document.getElementById("chat-thread");
-    const userAnswerTextarea   = document.getElementById("user-answer");
-    const bulletHintsList      = document.getElementById("bullet-hints");
+    const questionTagSpan = document.getElementById("question-type-tag");
+    const questionIndexSpan = document.getElementById("question-index");
+    const chatThread = document.getElementById("chat-thread");
+    const userAnswerTextarea = document.getElementById("user-answer");
+    const bulletHintsList = document.getElementById("bullet-hints");
 
-    const nextQuestionBtn      = document.getElementById("next-question-btn");
-    const generateAnswerBtn    = document.getElementById("generate-answer-btn");
-    const toggleSampleBtn      = document.getElementById("toggle-sample-btn");
-    const saveAnswerBtn        = document.getElementById("save-answer-btn");
-    const sampleBox            = document.getElementById("sample-answer-box");
-    const followupQuestionBtn  = document.getElementById("followup-question-btn");
+    const nextQuestionBtn = document.getElementById("next-question-btn");
+    const generateAnswerBtn = document.getElementById("generate-answer-btn");
+    const toggleSampleBtn = document.getElementById("toggle-sample-btn");
+    const saveAnswerBtn = document.getElementById("save-answer-btn");
+    const sampleBox = document.getElementById("sample-answer-box");
+    const followupQuestionBtn = document.getElementById("followup-question-btn");
 
-    const historyList          = document.getElementById("history-list");
-    const historyPanel         = document.getElementById("history-panel");
-    const historyToggleBtn     = document.getElementById("history-toggle-btn");
-    const historyToggleRow     = document.getElementById("history-toggle");
+    const historyList = document.getElementById("history-list");
+    const historyPanel = document.getElementById("history-panel");
+    const historyToggleBtn = document.getElementById("history-toggle-btn");
+    const historyToggleRow = document.getElementById("history-toggle");
 
-    const sampleHintText       = document.getElementById("sample-hint-text");
-    const sampleAnswerText     = document.getElementById("sample-answer-text");
-    const sampleRationaleText  = document.getElementById("sample-rationale-text");
+    const sampleHintText = document.getElementById("sample-hint-text");
+    const sampleAnswerText = document.getElementById("sample-answer-text");
+    const sampleRationaleText = document.getElementById("sample-rationale-text");
 
-    const coachChatThread      = document.getElementById("coach-chat-thread");
-    const coachInput           = document.getElementById("coach-input");
-    const coachSendBtn         = document.getElementById("coach-send-btn");
-    const coachLauncher        = document.getElementById("coach-launcher");
-    const coachChatWrapper     = document.getElementById("coach-chat-wrapper");
-    const coachChatClose       = document.getElementById("coach-chat-close");
+    const coachChatThread = document.getElementById("coach-chat-thread");
+    const coachInput = document.getElementById("coach-input");
+    const coachSendBtn = document.getElementById("coach-send-btn");
+    const coachLauncher = document.getElementById("coach-launcher");
+    const coachChatWrapper = document.getElementById("coach-chat-wrapper");
+    const coachChatClose = document.getElementById("coach-chat-close");
 
-    const progressChip         = document.getElementById("progress-chip");
-    const progressText         = document.getElementById("progress-text");
+    const progressChip = document.getElementById("progress-chip");
+    const progressText = document.getElementById("progress-text");
 
     // Recording summary + modal DOM
-    const openRecorderBtn        = document.getElementById("open-recorder-btn");
-    const recordingSummary       = document.getElementById("recording-summary");
-    const recordingSummaryMeta   = document.getElementById("recording-summary-meta");
+    const openRecorderBtn = document.getElementById("open-recorder-btn");
+    const recordingSummary = document.getElementById("recording-summary");
+    const recordingSummaryMeta = document.getElementById("recording-summary-meta");
     const recordingPlaybackAudio = document.getElementById("recording-playback-audio");
     const recordingPlaybackVideo = document.getElementById("recording-playback-video");
 
-    const recorderModal   = document.getElementById("recorder-modal");
-    const recDialog       = recorderModal ? recorderModal.querySelector(".rec-modal-dialog") : null;
+    const recorderModal = document.getElementById("recorder-modal");
+    const recDialog = recorderModal ? recorderModal.querySelector(".rec-modal-dialog") : null;
     const recModeAudioBtn = document.getElementById("rec-mode-audio");
     const recModeVideoBtn = document.getElementById("rec-mode-video");
     const recPreviewVideo = document.getElementById("rec-preview-video");
     const recAudioPlaceholder = document.getElementById("rec-audio-placeholder");
-    const recStartBtn     = document.getElementById("rec-start-btn");
-    const recStopBtn      = document.getElementById("rec-stop-btn");
-    const recCloseBtn     = document.getElementById("rec-close-btn");
-    const recTimerSpan    = document.getElementById("rec-timer");
-    const recStatusSpan   = document.getElementById("rec-status");
+    const recStartBtn = document.getElementById("rec-start-btn");
+    const recStopBtn = document.getElementById("rec-stop-btn");
+    const recCloseBtn = document.getElementById("rec-close-btn");
+    const recTimerSpan = document.getElementById("rec-timer");
+    const recStatusSpan = document.getElementById("rec-status");
 
     let PROJECT_ENTRIES = [];
     let COACH_CHAT_HISTORY = [];
@@ -437,11 +478,56 @@
 
     // ---- Status helper ----
     function setProgress(statusClass, text) {
-      if (progressChip) {
-        progressChip.className = "status-chip " + statusClass;
+      // 1. Drawer Chip
+      const chip1 = document.getElementById("progress-chip");
+      const text1 = document.getElementById("progress-text");
+      if (chip1) chip1.className = "status-chip " + statusClass;
+      if (text1) text1.textContent = text;
+
+      // 2. Top Bar Chip
+      const chip2 = document.getElementById("progress-chip-top");
+      const text2 = document.getElementById("progress-text-top");
+      if (chip2) chip2.className = "status-chip " + statusClass;
+      if (text2) text2.textContent = text;
+    }
+
+    // ---- Drawer Logic ----
+    function toggleDrawer() {
+      const drawer = document.getElementById("auxiliary-drawer");
+      const overlay = document.getElementById("drawer-overlay");
+      if (drawer) drawer.classList.toggle("open");
+      if (overlay) overlay.classList.toggle("open");
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById("auxiliary-drawer");
+      const overlay = document.getElementById("drawer-overlay");
+      if (drawer) drawer.classList.remove("open");
+      if (overlay) overlay.classList.remove("open");
+    }
+
+    // ---- Helper Column Logic (Allow AI Coach) ----
+    function toggleHelperColumn() {
+      const checkbox = document.getElementById("show-helper-toggle");
+      const layoutContainer = document.getElementById("practice-layout-container");
+      const col = document.getElementById("practice-helper-column");
+
+      if (checkbox && checkbox.checked) {
+        // Split layout
+        if (layoutContainer) layoutContainer.classList.add("split-active");
+        if (col) col.style.display = "flex";
+      } else {
+        // Single layout
+        if (layoutContainer) layoutContainer.classList.remove("split-active");
+        if (col) col.style.display = "none";
       }
-      if (progressText) {
-        progressText.textContent = text;
+    }
+
+    // Retain legacy togglePracticeSection if needed for internal drawer collapses
+    function togglePracticeSection(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
       }
     }
 
@@ -536,10 +622,10 @@
       const vh = window.innerHeight;
 
       const left = Math.max(16, (vw - rect.width) / 2);
-      const top  = Math.max(16, (vh - rect.height) / 2);
+      const top = Math.max(16, (vh - rect.height) / 2);
 
       recDialog.style.left = left + "px";
-      recDialog.style.top  = top + "px";
+      recDialog.style.top = top + "px";
     }
 
     function setupRecorderDragging() {
@@ -557,7 +643,7 @@
 
         const rect = recDialog.getBoundingClientRect();
         recDialogStartLeft = rect.left;
-        recDialogStartTop  = rect.top;
+        recDialogStartTop = rect.top;
 
         document.addEventListener("mousemove", onRecDragMove);
         document.addEventListener("mouseup", onRecDragEnd);
@@ -569,17 +655,17 @@
         const dy = e.clientY - recDragStartY;
 
         let newLeft = recDialogStartLeft + dx;
-        let newTop  = recDialogStartTop + dy;
+        let newTop = recDialogStartTop + dy;
 
         const margin = 8;
-        const maxLeft = window.innerWidth  - margin;
-        const maxTop  = window.innerHeight - margin;
+        const maxLeft = window.innerWidth - margin;
+        const maxTop = window.innerHeight - margin;
 
         newLeft = Math.min(Math.max(newLeft, margin - recDialog.offsetWidth), maxLeft);
-        newTop  = Math.min(Math.max(newTop,  margin - recDialog.offsetHeight), maxTop);
+        newTop = Math.min(Math.max(newTop, margin - recDialog.offsetHeight), maxTop);
 
         recDialog.style.left = newLeft + "px";
-        recDialog.style.top  = newTop  + "px";
+        recDialog.style.top = newTop + "px";
       }
 
       function onRecDragEnd() {
@@ -654,7 +740,7 @@
 
       const recQ = document.getElementById("rec-current-question");
       if (recQ) {
-        recQ.textContent = `${questionIndexSpan.textContent} – ${CURRENT_QUESTION}`;
+        recQ.textContent = `Q${QUESTION_COUNT} – ${CURRENT_QUESTION}`;
       }
 
       setRecMode(REC_MODE);
@@ -674,7 +760,7 @@
       if (!recorderModal) return;
 
       if (recMediaRecorder && recMediaRecorder.state === "recording") {
-        try { recMediaRecorder.stop(); } catch (e) {}
+        try { recMediaRecorder.stop(); } catch (e) { }
       }
       resetRecorderState(false);
       if (recMediaStream) {
@@ -1131,8 +1217,8 @@
         updateFollowupButtonState();
 
         const tagText = data.tag || "Question";
-        questionTagSpan.textContent = tagText;
-        questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
+        if (questionTagSpan) questionTagSpan.textContent = tagText;
+        if (questionIndexSpan) questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
 
         currentQuestionCard = createQuestionCard(tagText, QUESTION_COUNT, CURRENT_QUESTION);
         renderBulletHints(data.bullets || []);
@@ -1181,11 +1267,11 @@
           header.className = "history-item history-item-header";
           header.textContent =
             m === "auto" ? "Auto questions" :
-            m === "behavioral" ? "Behavioral questions" :
-            m === "project" ? "Project deep dive" :
-            m === "technical" ? "Technical questions" :
-            m === "case" ? "Case reasoning questions" :
-            "Custom questions";
+              m === "behavioral" ? "Behavioral questions" :
+                m === "project" ? "Project deep dive" :
+                  m === "technical" ? "Technical questions" :
+                    m === "case" ? "Case reasoning questions" :
+                      "Custom questions";
           historyList.appendChild(header);
 
           grouped[m]
@@ -1211,7 +1297,7 @@
               li.appendChild(meta);
 
               li.addEventListener("click", () => {
-                const q  = t.question || "";
+                const q = t.question || "";
                 const ua = t.user_answer || "(No saved user answer)";
                 const sa = t.sample_answer || "(No sample answer)";
                 const sc = (t.score !== undefined && t.score !== null)
@@ -1246,17 +1332,33 @@
       try {
         const resp = await fetch(`/api/practice_stats/${PROFILE_ID}`);
         if (!resp.ok) {
-          box.querySelector("p").textContent = "No stats yet.";
+          box.innerHTML = '<p class="stats-empty">No stats yet.</p>';
           return;
         }
         const data = await resp.json();
         const by = data.by_mode || {};
-        box.querySelector("p").textContent =
-          `Total ${data.total} · auto ${by.auto || 0}, ` +
-          `behavioral ${by.behavioral || 0}, project ${by.project || 0}, ` +
-          `technical ${by.technical || 0}, case ${by.case || 0}`;
+
+        // Helper to create valid stat item
+        const mkStat = (label, val, icon) => `
+          <div class="stat-item">
+            <span class="stat-val">${val || 0}</span>
+            <span class="stat-lbl">${label}</span>
+          </div>
+        `;
+
+        box.innerHTML = `
+          <div class="stats-grid">
+             ${mkStat('Total', data.total)}
+             ${mkStat('Auto', by.auto)}
+             ${mkStat('Behav.', by.behavioral)}
+             ${mkStat('Tech', by.technical)}
+             ${mkStat('Case', by.case)}
+             ${mkStat('Proj.', by.project)}
+          </div>
+        `;
+
       } catch (e) {
-        box.querySelector("p").textContent = "Failed to load stats.";
+        box.innerHTML = '<p class="stats-error">Failed to load stats.</p>';
       }
     }
 
@@ -1341,8 +1443,8 @@
         CURRENT_LAST_ANSWER = "";
 
         const tagText = data.tag || "Follow-up";
-        questionTagSpan.textContent = tagText;
-        questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
+        if (questionTagSpan) questionTagSpan.textContent = tagText;
+        if (questionIndexSpan) questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
 
         currentQuestionCard = createQuestionCard(tagText, QUESTION_COUNT, CURRENT_QUESTION);
         renderBulletHints(data.bullets || []);
@@ -1413,15 +1515,15 @@
         }
 
         const data = await resp.json();
-        const answerText    = data.answer    || "(No answer returned)";
-        const hintText      = data.hint      || "No hint returned.";
+        const answerText = data.answer || "(No answer returned)";
+        const hintText = data.hint || "No hint returned.";
         const rationaleText = data.rationale || "No rationale returned.";
 
         sampleBox.classList.add("blurred");
-        sampleHintText.textContent      = hintText;
-        sampleAnswerText.textContent    = answerText;
+        sampleHintText.textContent = hintText;
+        sampleAnswerText.textContent = answerText;
         sampleRationaleText.textContent = rationaleText;
-        toggleSampleBtn.textContent     = "Hide / Reveal";
+        toggleSampleBtn.textContent = "Hide / Reveal";
 
         LAST_SAMPLE_ANSWER = answerText;
         COACH_CHAT_HISTORY = [];
@@ -1677,11 +1779,11 @@
           }
 
           const data = await resp.json();
-          const score        = data.score;
-          const strengths    = data.strengths || "";
+          const score = data.score;
+          const strengths = data.strengths || "";
           const improvements = data.improvements || "";
 
-          const transcript   = data.transcript || "";
+          const transcript = data.transcript || "";
           let effectiveAnswer = userText;
 
           if (!effectiveAnswer && transcript) {
@@ -1823,6 +1925,23 @@
         }
       });
     }
+
+    // ============================================================
+    // Collapsible section toggle function
+    // ============================================================
+    function togglePracticeSection(sectionId) {
+      const content = document.getElementById(sectionId);
+      const toggle = content.previousElementSibling;
+
+      if (content.classList.contains('active')) {
+        content.classList.remove('active');
+        toggle.classList.remove('active');
+      } else {
+        content.classList.add('active');
+        toggle.classList.add('active');
+      }
+    }
   </script>
 </body>
+
 </html>

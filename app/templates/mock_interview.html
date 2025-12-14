@@ -5,9 +5,9 @@
   <title>Mock Interview – Intelliview Coach</title>
 
   <!-- Global nav -->
-  <link rel="stylesheet" href="/static/global-nav.css" />
+  <link rel="stylesheet" href="/static/global-nav.css?v=11" />
   <!-- This page CSS -->
-  <link rel="stylesheet" href="/static/mock_interviews.css" />
+  <link rel="stylesheet" href="/static/mock_interviews.css?v=11" />
 </head>
 
 <body>
@@ -81,12 +81,12 @@
           </div>
         </section>
 
-        <!-- 右邊：Coaching hints -->
+        <!-- 右邊：Coaching hints - Redesigned with collapsible sections -->
         <aside class="hints-panel" id="hints-panel">
-          <h3>Coaching hints</h3>
-          <div id="hints-container" class="hint-box">
+          <h3>💡 Coaching Hints</h3>
+          <div id="hints-container">
             <p class="hint-empty">
-              Once the interview starts, you’ll see structure tips and suggested bullets here.
+              Once the interview starts, you'll see helpful tips here.
             </p>
           </div>
         </aside>
@@ -447,7 +447,7 @@
 
       await initCameraPreview();
 
-      // ---------- Hints rendering ----------
+      // ---------- Hints rendering - Redesigned with collapsible sections ----------
       function renderHints(hints, suggestedBullets) {
         // 完全沒有任何提示就把 panel 收掉
         if (
@@ -464,65 +464,87 @@
         const extra     = (hints && hints.extra) || "";
 
         let html = "";
+        let sectionCount = 0;
 
-        // 1) General tips
+        // Helper function to create collapsible section
+        const createCollapsibleSection = (id, title, content, defaultOpen = false) => {
+          sectionCount++;
+          const activeClass = defaultOpen ? ' active' : '';
+          return `
+            <div class="hint-collapsible">
+              <button class="hint-toggle${activeClass}" onclick="toggleHintSection('${id}')">
+                <span>${title}</span>
+                <span class="hint-toggle-icon">▼</span>
+              </button>
+              <div class="hint-content${activeClass}" id="${id}">
+                <div class="hint-content-inner">
+                  ${content}
+                </div>
+              </div>
+            </div>
+          `;
+        };
+
+        // 1) General tips - collapsed by default
         if (bullets.length) {
-          html += `
-            <div class="hint-section">
-              <h4>General tips</h4>
-              <ul>
-                ${bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}
-              </ul>
-            </div>
+          const content = `
+            <ul>
+              ${bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}
+            </ul>
           `;
+          html += createCollapsibleSection('hint-general', '📌 General Tips', content, false);
         }
 
-        // 2) Structure tip
+        // 2) Structure tip - collapsed by default
         if (structure) {
-          html += `
-            <div class="hint-section">
-              <h4>Structure tip</h4>
-              <p>${escapeHtml(structure)}</p>
-            </div>
-          `;
+          const content = `<p>${escapeHtml(structure)}</p>`;
+          html += createCollapsibleSection('hint-structure', '🏗️ Structure Guide', content, false);
         }
 
-        // 3) Extra guidance（只有 full 模式）
+        // 3) Extra guidance（只有 full 模式）- collapsed by default
         if (extra && hintLevel === "full") {
-          html += `
-            <div class="hint-section">
-              <h4>Extra guidance</h4>
-              <p>${escapeHtml(extra)}</p>
-            </div>
-          `;
+          const content = `<p>${escapeHtml(extra)}</p>`;
+          html += createCollapsibleSection('hint-extra', '✨ Extra Guidance', content, false);
         }
 
-        // 4) 最後才放 Suggested bullets from your resume
+        // 4) Suggested bullets from your resume - collapsed by default
         if (suggestedBullets && suggestedBullets.length) {
-          html += `
-            <div class="hint-section">
-              <h4>Suggested bullets from your resume</h4>
-              <ul>
-                ${suggestedBullets
-                  .map((b) => {
-                    const entry = escapeHtml(b.entry || b.section || "");
-                    const text  = escapeHtml(b.text || "");
-                    if (entry) {
-                      return `<li><span class="hint-entry">[${entry}]</span> ${text}</li>`;
-                    }
-                    return `<li>${text}</li>`;
-                  })
-                  .join("")}
-              </ul>
-            </div>
+          const content = `
+            <ul>
+              ${suggestedBullets
+                .map((b) => {
+                  const entry = escapeHtml(b.entry || b.section || "");
+                  const text  = escapeHtml(b.text || "");
+                  if (entry) {
+                    return `<li><span class="hint-entry">${entry}</span><br/>${text}</li>`;
+                  }
+                  return `<li>${text}</li>`;
+                })
+                .join("")}
+            </ul>
           `;
+          html += createCollapsibleSection('hint-bullets', '📝 Resume Examples', content, false);
         }
 
         if (!html) {
-          html = "<p class='hint-empty'>No hints for this question.</p>";
+          html = "<p class='hint-empty'>No hints available for this question.</p>";
         }
 
         hintsBox.innerHTML = html;
+      }
+
+      // Toggle hint section visibility
+      function toggleHintSection(sectionId) {
+        const content = document.getElementById(sectionId);
+        const toggle = content.previousElementSibling;
+
+        if (content.classList.contains('active')) {
+          content.classList.remove('active');
+          toggle.classList.remove('active');
+        } else {
+          content.classList.add('active');
+          toggle.classList.add('active');
+        }
       }
 
       // ---------- 問題載入 ----------
