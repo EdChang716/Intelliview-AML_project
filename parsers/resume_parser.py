@@ -13,16 +13,16 @@ import pdfplumber
 
 def extract_pdf_text(pdf_path: str) -> str:
     """
-    Extracts text from PDF.
-    Using layout=False often works better for single-column resumes
-    to preserve reading order, but you can toggle to True if needed.
+    Extracts text from PDF with proper spacing between words.
+    Using x_tolerance=1 and y_tolerance=3 helps preserve word boundaries
+    for PDFs where characters are positioned very close together.
     """
     text = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            # layout=True helps preserve visual spacing, which is sometimes useful
-            # but for standard parsing, raw stream is often easier if columns aren't an issue.
-            page_text = page.extract_text(layout=False)
+            # x_tolerance=1 ensures proper spacing between words
+            # y_tolerance=3 helps group text on the same line
+            page_text = page.extract_text(x_tolerance=1, y_tolerance=3)
             if page_text:
                 text.append(page_text)
     return "\n".join(text)
