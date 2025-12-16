@@ -32,3 +32,22 @@ app.include_router(interviews.router)
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
+
+# Dynamic resume selection page
+def list_available_resumes():
+    """List all available parsed resumes"""
+    parsed_dir = USER_DATA_DIR / "parsed"
+    if not parsed_dir.exists():
+        return {"resumes": []}
+    
+    resumes = []
+    for folder in parsed_dir.iterdir():
+        if folder.is_dir():
+            # Check if it has the required files
+            if (folder / "experience_entries.json").exists():
+                resumes.append({
+                    "resume_id": folder.name,
+                    "name": folder.name
+                })
+    
+    return {"resumes": resumes}
