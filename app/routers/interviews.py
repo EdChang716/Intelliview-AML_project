@@ -29,9 +29,19 @@ router = APIRouter()
 
 @router.get("/practice/{profile_id}", response_class=HTMLResponse, name="practice_page")
 async def practice_page(request: Request, profile_id: str):
+    profiles = load_job_profiles()
+    profile = next((p for p in profiles if p.get("profile_id") == profile_id), None)
+    job_title = profile.get("job_title", "Interview Practice") if profile else "Interview Practice"
+    company = profile.get("company", "") if profile else ""
+    
     return templates.TemplateResponse(
         "practice.html",
-        {"request": request, "profile_id": profile_id},
+        {
+            "request": request, 
+            "profile_id": profile_id,
+            "job_title": job_title,
+            "company": company
+        },
     )
 
 class NextQuestionRequest(BaseModel):

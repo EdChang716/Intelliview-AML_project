@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Intelliview Coach – Resume Setup</title>
-  <link rel="stylesheet" href="/static/style.css?v=5" />
-  <link rel="stylesheet" href="/static/resume.css?v=5" />
-  <link rel="stylesheet" href="/static/global-nav.css?v=5" />
+  <link rel="stylesheet" href="/static/style.css?v=10" />
+  <link rel="stylesheet" href="/static/resume.css?v=10" />
+  <link rel="stylesheet" href="/static/global-nav.css?v=10" />
 </head>
 
 <body>
@@ -174,17 +174,19 @@
     // 工具：依 entry 分組 bullets
     // ===========================
     function groupEntries(entries) {
-      const grouped = { EXPERIENCE: [], PROJECTS: [] };
+      const grouped = {};
       const byKey = {};
 
       entries.forEach((e) => {
         const section = e.section || "EXPERIENCE";
         const entry = e.entry || "Untitled Entry";
         const text = e.text || "";
+        const location = e.location || "";
+        const dates = e.dates || "";
 
         const key = section + "||" + entry;
         if (!byKey[key]) {
-          byKey[key] = { section, entry, bullets: [] };
+          byKey[key] = { section, entry, location, dates, bullets: [] };
         }
         byKey[key].bullets.push(text);
       });
@@ -205,7 +207,8 @@
       const container = document.getElementById("experience-container");
       container.innerHTML = "";
 
-      const sections = ["EXPERIENCE", "PROJECTS"];
+      // Use all sections from the grouped data instead of hardcoded list
+      const sections = Object.keys(currentState.groupedEntries);
       sections.forEach((sec) => {
         const sectionEntries = currentState.groupedEntries[sec] || [];
         if (sectionEntries.length === 0) return;
@@ -220,13 +223,62 @@
           wrapper.dataset.section = sec;
           wrapper.dataset.index = idx;
 
-          // entry title
+          // Title row with delete icon
+          const titleRow = document.createElement("div");
+          titleRow.style.display = "flex";
+          titleRow.style.alignItems = "center";
+          titleRow.style.gap = "8px";
+          titleRow.style.marginBottom = "8px";
+
           const titleInput = document.createElement("input");
           titleInput.className = "entry-title";
           titleInput.value = entryObj.entry || "";
-          titleInput.placeholder =
-            sec === "EXPERIENCE" ? "Company — Role" : "Project title";
-          wrapper.appendChild(titleInput);
+          titleInput.placeholder = sec === "EXPERIENCE" ? "Company — Role" : "Project title";
+          titleInput.style.flex = "1";
+
+          const deleteIcon = document.createElement("button");
+          deleteIcon.type = "button";
+          deleteIcon.innerHTML = "🗑️";
+          deleteIcon.className = "icon-btn";
+          deleteIcon.title = "Delete Entry";
+          deleteIcon.style.background = "none";
+          deleteIcon.style.border = "none";
+          deleteIcon.style.cursor = "pointer";
+          deleteIcon.style.fontSize = "18px";
+          deleteIcon.style.padding = "4px";
+          deleteIcon.onclick = () => {
+            const list = currentState.groupedEntries[sec];
+            list.splice(idx, 1);
+            renderExperienceEditor();
+          };
+
+          titleRow.appendChild(titleInput);
+          titleRow.appendChild(deleteIcon);
+          wrapper.appendChild(titleRow);
+
+          // Location and Dates row
+          const metaRow = document.createElement("div");
+          metaRow.style.display = "flex";
+          metaRow.style.gap = "8px";
+          metaRow.style.marginBottom = "8px";
+
+          const locationInput = document.createElement("input");
+          locationInput.className = "entry-meta-input";
+          locationInput.value = entryObj.location || "";
+          locationInput.placeholder = "Location (e.g., Boston, MA)";
+          locationInput.dataset.field = "location";
+          locationInput.style.flex = "1";
+
+          const datesInput = document.createElement("input");
+          datesInput.className = "entry-meta-input";
+          datesInput.value = entryObj.dates || "";
+          datesInput.placeholder = "Dates (e.g., Apr 2023 - May 2024)";
+          datesInput.dataset.field = "dates";
+          datesInput.style.flex = "1";
+
+          metaRow.appendChild(locationInput);
+          metaRow.appendChild(datesInput);
+          wrapper.appendChild(metaRow);
 
           // bullets container
           const bulletsLabel = document.createElement("div");
@@ -290,16 +342,6 @@
           };
           btnRow.appendChild(addBulletBtn);
 
-          const deleteEntryBtn = document.createElement("button");
-          deleteEntryBtn.type = "button";
-          deleteEntryBtn.textContent = "Delete Entry";
-          deleteEntryBtn.onclick = () => {
-            const list = currentState.groupedEntries[sec];
-            list.splice(idx, 1);
-            renderExperienceEditor();
-          };
-          btnRow.appendChild(deleteEntryBtn);
-
           wrapper.appendChild(btnRow);
           container.appendChild(wrapper);
         });
@@ -315,6 +357,13 @@
       entryCards.forEach((card) => {
         const section = card.dataset.section || "EXPERIENCE";
         const title = card.querySelector(".entry-title").value.trim();
+
+        // Get location and dates
+        const locationInput = card.querySelector('[data-field="location"]');
+        const datesInput = card.querySelector('[data-field="dates"]');
+        const location = locationInput ? locationInput.value.trim() : "";
+        const dates = datesInput ? datesInput.value.trim() : "";
+
         const bulletInputs = card.querySelectorAll(".bullet-input");
 
         bulletInputs.forEach((inp) => {
@@ -323,6 +372,8 @@
           entries.push({
             section,
             entry: title || "Untitled Entry",
+            location,
+            dates,
             text
           });
         });
@@ -362,6 +413,12 @@
         degreeInput.placeholder = "Degree / Program";
         degreeInput.dataset.field = "degree";
 
+        const majorInput = document.createElement("input");
+        majorInput.className = "edu-input";
+        majorInput.value = s.major || "";
+        majorInput.placeholder = "Major / Field of Study";
+        majorInput.dataset.field = "major";
+
         const datesInput = document.createElement("input");
         datesInput.className = "edu-input";
         datesInput.value = s.dates || "";
@@ -376,6 +433,7 @@
 
         card.appendChild(schoolInput);
         card.appendChild(degreeInput);
+        card.appendChild(majorInput);
         card.appendChild(datesInput);
         card.appendChild(gpaInput);
 
@@ -585,12 +643,24 @@
         // Populate state
         currentState.project_id = data.project_id;
         currentState.entries = data.entries || [];
-        currentState.metadata = data.metadata || [];
+        currentState.metadata = data.metadata || {};
         currentState.education_structured = data.education_structured || [];
 
         currentState.groupedEntries = groupEntries(currentState.entries);
         currentState.skillsList = splitToTags(currentState.metadata.SKILLS || "");
-        currentState.coursesList = splitToTags(currentState.metadata.COURSES || "");
+
+        // Extract courses from education_structured and merge with metadata.COURSES
+        const educationCourses = [];
+        (data.education_structured || []).forEach(school => {
+          if (school.courses && school.courses.length > 0) {
+            school.courses.forEach(courseStr => {
+              educationCourses.push(courseStr);
+            });
+          }
+        });
+        const metadataCourses = currentState.metadata.COURSES || "";
+        const allCourses = metadataCourses ? metadataCourses + "\n" + educationCourses.join("\n") : educationCourses.join("\n");
+        currentState.coursesList = splitToTags(allCourses);
 
         document.getElementById("meta-other").value = currentState.metadata.OTHER || "";
 
@@ -653,7 +723,20 @@
         currentState.education_structured = data.education_structured || [];
         currentState.groupedEntries = groupEntries(currentState.entries);
         currentState.skillsList = splitToTags(currentState.metadata.SKILLS || "");
-        currentState.coursesList = splitToTags(currentState.metadata.COURSES || "");
+
+        // Extract courses from education_structured and merge with metadata.COURSES
+        const educationCourses = [];
+        (data.education_structured || []).forEach(school => {
+          if (school.courses && school.courses.length > 0) {
+            school.courses.forEach(courseStr => {
+              educationCourses.push(courseStr);
+            });
+          }
+        });
+        const metadataCourses = currentState.metadata.COURSES || "";
+        const allCourses = metadataCourses ? metadataCourses + "\n" + educationCourses.join("\n") : educationCourses.join("\n");
+        currentState.coursesList = splitToTags(allCourses);
+
         document.getElementById("meta-other").value = currentState.metadata.OTHER || "";
 
         renderExperienceEditor();
@@ -723,6 +806,49 @@
     // ===========================
     setupTagInput("new-skill-input", "add-skill-btn", "skills");
     setupTagInput("new-course-input", "add-course-btn", "courses");
+
+
+    // ===========================
+    // 20261209 新增 Add Experience / Project 的邏輯 
+    // ===========================
+    function addNewEntry(sectionName) {
+      // 1. 【關鍵步驟】在新增之前，先從畫面收集目前使用者已經輸入的內容
+      // 這樣才不會因為重新渲染 (render) 而導致剛剛打的字消失
+      const currentFlatEntries = collectEntriesFromEditor();
+      
+      // 2. 更新全域狀態
+      currentState.groupedEntries = groupEntries(currentFlatEntries);
+
+      // 3. 確保該區塊陣列存在
+      if (!currentState.groupedEntries[sectionName]) {
+        currentState.groupedEntries[sectionName] = [];
+      }
+
+      // 4. 推入一個新的空白項目
+      currentState.groupedEntries[sectionName].push({
+        section: sectionName,
+        entry: "",       
+        bullets: [""]    
+      });
+
+      // 5. 重新渲染畫面 (這時候狀態已經包含舊的輸入 + 新的空白項)
+      renderExperienceEditor();
+    }
+    
+    const addExpBtn = document.getElementById("add-experience-btn");
+    if (addExpBtn) {
+      addExpBtn.addEventListener("click", function() {
+        addNewEntry("EXPERIENCE");
+      });
+    }
+
+    const addProjBtn = document.getElementById("add-project-btn");
+    if (addProjBtn) {
+      addProjBtn.addEventListener("click", function() {
+        addNewEntry("PROJECTS");
+      });
+    }
+
   </script>
 </body>
 

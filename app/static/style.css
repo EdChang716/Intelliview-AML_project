@@ -107,6 +107,7 @@ button:hover {
 
 .entry-title {
   width: 100%;
+  box-sizing: border-box;
   margin-bottom: 6px;
   padding: 5px 8px;
   border-radius: 6px;
@@ -129,6 +130,7 @@ button:hover {
 
 .bullet-input {
   flex: 1;
+  min-width: 0;
   padding: 5px 8px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
@@ -194,6 +196,7 @@ button:hover {
 }
 
 .edu-input {
+  box-sizing: border-box;
   width: 100%;
   padding: 5px 8px;
   border-radius: 6px;
