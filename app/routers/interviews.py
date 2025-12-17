@@ -28,17 +28,25 @@ from core import mock_interview
 router = APIRouter()
 
 @router.get("/practice/{profile_id}", response_class=HTMLResponse, name="practice_page")
-async def practice_page(request: Request, profile_id: str):
+async def practice_page(request: Request, profile_id: str, resume_id: Optional[str] = None):
     profiles = load_job_profiles()
     profile = next((p for p in profiles if p.get("profile_id") == profile_id), None)
     job_title = profile.get("job_title", "Interview Practice") if profile else "Interview Practice"
     company = profile.get("company", "") if profile else ""
     
+     # If no resume_id provided, get first available resume
+    if not resume_id:
+        parsed_root = USER_DATA_DIR / "parsed"
+        if parsed_root.exists():
+            folders = [f.name for f in parsed_root.iterdir() if f.is_dir()]
+            resume_id = folders[0] if folders else None
+
     return templates.TemplateResponse(
         "practice.html",
         {
             "request": request, 
             "profile_id": profile_id,
+            "resume_id": resume_id,
             "job_title": job_title,
             "company": company
         },
@@ -46,6 +54,7 @@ async def practice_page(request: Request, profile_id: str):
 
 class NextQuestionRequest(BaseModel):
     profile_id: str
+    resume_id: str
     mode: str  # "auto" | "behavioral" | "project" | "technical" | "case" | "custom"
     behavioral_type: Optional[str] = None
     entry_key: Optional[str] = None
@@ -67,7 +76,7 @@ async def api_next_question(req: NextQuestionRequest):
         asked = get_asked_questions(req.profile_id, mode="auto")
         question = call_llm_for_question(jd_text, mode="auto", avoid=asked)
 
-        bullets = retrieve_bullets_for_profile(req.profile_id, question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, question, req.resume_id, top_k=5)
         tag = "Auto (from JD)"
         behavioral_type = None
         entry_key = None
@@ -76,7 +85,7 @@ async def api_next_question(req: NextQuestionRequest):
     elif mode == "behavioral":
         subtype = req.behavioral_type or "random"
         question = get_behavioral_question(req.profile_id, subtype)
-        bullets = retrieve_bullets_for_profile(req.profile_id, question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, question, req.resume_id, top_k=5)
         tag = f"Behavioral · {subtype}"
         behavioral_type = subtype
         entry_key = None
@@ -128,7 +137,7 @@ async def api_next_question(req: NextQuestionRequest):
             mode="technical",
             avoid=asked,
         )
-        bullets = retrieve_bullets_for_profile(req.profile_id, question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, question, req.resume_id, top_k=5)
         tag = "Technical question"
         behavioral_type = None
         entry_key = None
@@ -141,7 +150,7 @@ async def api_next_question(req: NextQuestionRequest):
             mode="case",
             avoid=asked,
         )
-        bullets = retrieve_bullets_for_profile(req.profile_id, question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, question, req.resume_id, top_k=5)
         tag = "Case interview question"
         behavioral_type = None
         entry_key = None
@@ -152,7 +161,7 @@ async def api_next_question(req: NextQuestionRequest):
             raise HTTPException(status_code=400, detail="custom_question is required for custom mode")
 
         question = req.custom_question
-        bullets = retrieve_bullets_for_profile(req.profile_id, question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, question, req.resume_id, top_k=5)
         tag = "Custom question"
         behavioral_type = None
         entry_key = None
@@ -171,15 +180,18 @@ async def api_next_question(req: NextQuestionRequest):
 
 class BulletsRequest(BaseModel):
     profile_id: str
+    resume_id: str
     question: str
+
 
 @router.post("/api/retrieve_bullets")
 async def api_retrieve_bullets(req: BulletsRequest):
-    bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=3)
+    bullets = retrieve_bullets_for_profile(req.profile_id, req.question, req.resume_id, top_k=3)
     return {"bullets": bullets}
 
 class CoachChatRequest(BaseModel):
     profile_id: str
+    resume_id: str
     mode: str
     question: str
     user_message: str
@@ -200,7 +212,7 @@ async def api_coach_chat(req: CoachChatRequest):
     if req.bullets:
         bullets = req.bullets
     else:
-        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, req.resume_id, top_k=5)
 
     # Build bullet context block
     bullet_lines = []
@@ -266,6 +278,7 @@ Current sample answer (may be empty if not generated yet):
 
 class SampleAnswerRequest(BaseModel):
     profile_id: str
+    resume_id: str
     question: str
     mode: str
     behavioral_type: Optional[str] = None
@@ -286,7 +299,7 @@ async def api_generate_sample_answer(req: SampleAnswerRequest):
     if req.bullets:
         bullets = req.bullets
     else:
-        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, req.resume_id, top_k=5)
 
     llm_result = call_llm_for_sample_answer(
         question=req.question,
@@ -304,6 +317,7 @@ async def api_generate_sample_answer(req: SampleAnswerRequest):
 
 class SaveUserAnswerRequest(BaseModel):
     profile_id: str
+    resume_id: str
     question: str
     mode: str
     behavioral_type: Optional[str] = None
@@ -330,7 +344,7 @@ async def api_save_user_answer(req: SaveUserAnswerRequest):
     if req.bullets:
         bullets = req.bullets
     else:
-        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, req.resume_id, top_k=5)
 
     # Evaluate the answer
     eval_result = evaluate_answer(
@@ -378,6 +392,7 @@ async def api_save_user_answer(req: SaveUserAnswerRequest):
 
 class FollowupQuestionRequest(BaseModel):
     profile_id: str
+    resume_id: str
     mode: str  # "auto" | "behavioral" | "project" | "custom"
     base_question: str  # main question for this thread
     user_answer: Optional[str] = None  # latest answer to base_question
@@ -401,7 +416,7 @@ async def api_followup_question(req: FollowupQuestionRequest):
     if req.bullets:
         bullets = req.bullets
     else:
-        bullets = retrieve_bullets_for_profile(req.profile_id, req.base_question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, req.base_question, req.resume_id, top_k=5)
 
     # 2) get this thread's existing turns from session
     session = load_session(req.profile_id)
@@ -554,7 +569,7 @@ async def api_save_user_answer_with_media(
     if req.bullets:
         bullets = req.bullets
     else:
-        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, top_k=5)
+        bullets = retrieve_bullets_for_profile(req.profile_id, req.question, req.resume_id, top_k=5)
 
     eval_result = evaluate_answer(
         question=req.question,

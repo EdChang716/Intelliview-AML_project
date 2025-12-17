@@ -64,7 +64,15 @@ async def upload_resume(
         json.dump(metadata, f, ensure_ascii=False, indent=2)
     with open(parsed_dir / "education_structured.json", "w", encoding="utf-8") as f:
         json.dump(education_structured, f, ensure_ascii=False, indent=2)
-
+    
+    # Generate embeddings automatically
+    try:
+        from core.embeddings import build_resume_embeddings
+        build_resume_embeddings(project_id)
+    except Exception as e:
+        print(f"Warning: Failed to generate embeddings for {project_id}: {e}")
+        # Don't fail the upload if embeddings fail
+        
     return JSONResponse(
         content={
             "project_id": project_id,
@@ -124,9 +132,9 @@ async def list_resumes():
         for folder in parsed_root.iterdir():
             if folder.is_dir():
                 # We can try to read metadata to get more info, or just return ID
-                resumes.append({"project_id": folder.name})
+                resumes.append({"resume_id": folder.name, "name": folder.name})
     # Sort alphabetical
-    resumes.sort(key=lambda x: x["project_id"])
+    resumes.sort(key=lambda x: x["resume_id"])
     return {"resumes": resumes}
 
 @router.get("/api/resume/{project_id}")

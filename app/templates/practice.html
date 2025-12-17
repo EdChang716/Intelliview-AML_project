@@ -373,6 +373,7 @@
 
   <script>
     const PROFILE_ID = "{{ profile_id }}";
+    const RESUME_ID = "{{ resume_id }}";
 
     // ---- Global state ----
     let CURRENT_MODE = "auto";
@@ -1007,6 +1008,7 @@
 
       const payload = {
         profile_id: PROFILE_ID,
+        resume_id: RESUME_ID,
         mode: CURRENT_MODE,
         question: CURRENT_QUESTION,
         user_message: msg,
@@ -1182,6 +1184,7 @@
 
       const payload = {
         profile_id: PROFILE_ID,
+        resume_id: RESUME_ID,
         mode: CURRENT_MODE,
         behavioral_type:
           CURRENT_MODE === "behavioral" && CURRENT_BEHAVIORAL_TYPE !== "random"
@@ -1403,6 +1406,7 @@
 
       const payload = {
         profile_id: PROFILE_ID,
+        resume_id: RESUME_ID,
         mode: CURRENT_MODE,
         base_question: CURRENT_BASE_QUESTION,
         user_answer: baseAnswer,
@@ -1486,6 +1490,7 @@
 
       const payload = {
         profile_id: PROFILE_ID,
+        resume_id: RESUME_ID,
         question: CURRENT_QUESTION,
         mode: CURRENT_MODE,
         behavioral_type:
@@ -1656,6 +1661,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             profile_id: PROFILE_ID,
+            resume_id: RESUME_ID,
             question: CURRENT_QUESTION,
           }),
         });
@@ -1724,6 +1730,7 @@
 
         const metaPayload = {
           profile_id: PROFILE_ID,
+          resume_id: RESUME_ID,
           question: CURRENT_QUESTION,
           mode: CURRENT_MODE,
           behavioral_type:

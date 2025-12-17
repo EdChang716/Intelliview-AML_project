@@ -64,6 +64,19 @@
             </label>
           </div>
 
+          <!-- Resume selector -->
+          <div class="form-row">
+            <label class="field-group">
+              <span class="field-label">Resume</span>
+              <select id="resume-select" name="resume_id" required>
+                <option value="" disabled selected>Select a resume</option>
+              </select>
+              <small class="field-hint">
+                Choose which resume to use for this interview.
+              </small>
+            </label>
+          </div>
+
           <!-- Interviewer gender (for TTS voice) -->
           <div class="form-row">
             <label class="field-group">
@@ -268,6 +281,35 @@
       const form = document.getElementById("mock-form");
       const statusEl = document.getElementById("mock-settings-status");
       const profileSelect = document.getElementById("profile-select");
+      const resumeSelect = document.getElementById("resume-select");
+
+            // Fetch and populate resumes
+      async function loadResumes() {
+        try {
+          const resp = await fetch("/api/resumes");
+          const data = await resp.json();
+          
+          resumeSelect.innerHTML = '<option value="" disabled selected>Select a resume</option>';
+          
+          data.resumes.forEach(resume => {
+            const opt = document.createElement("option");
+            opt.value = resume.resume_id;
+            opt.textContent = resume.name;
+            resumeSelect.appendChild(opt);
+          });
+          
+          // Auto-select if only one resume
+          if (data.resumes.length === 1) {
+            resumeSelect.value = data.resumes[0].resume_id;
+          }
+        } catch (err) {
+          console.error("Failed to load resumes:", err);
+          statusEl.textContent = "Failed to load resumes.";
+        }
+      }
+
+      loadResumes();
+
 
       const lengthBlock = document.getElementById("length-block");
       const lengthTypeRadios = form.elements["length_type"];
@@ -358,6 +400,7 @@
       form.addEventListener("submit", (e) => {
         const mode = getSelectedMode();
         const profileId = profileSelect.value;
+        const resumeId = resumeSelect.value;
 
         statusEl.textContent = "";
 
@@ -367,10 +410,16 @@
           return;
         }
 
+        if (!resumeId) {
+          e.preventDefault();
+          statusEl.textContent = "Please select a resume.";
+          return;
+         }
+
         if (mode === "practice") {
           // ✅ Practice：直接回到文字練習頁，不走 mock_interview
           e.preventDefault();
-          const url = `/practice/${encodeURIComponent(profileId)}`;
+          const url = `/practice/${encodeURIComponent(profileId)}?resume_id=${encodeURIComponent(resumeId)}`;
           window.location.href = url;
           return;
         }
