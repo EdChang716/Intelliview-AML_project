@@ -1849,7 +1849,7 @@
               const iLabel = document.createElement("p");
               iLabel.innerHTML = "<strong>How you can improve:</strong>";
               const iText = document.createElement("p");
-              iText.textContent = improvements;
+              iText.innerHTML = improvements.replace(/\n/g, '<br>');
               block.appendChild(iLabel);
               block.appendChild(iText);
             }

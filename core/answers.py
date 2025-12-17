@@ -239,43 +239,55 @@ def evaluate_answer(
         # 🔹 純文字版本
         prompt = f"""
 You are an interview coach evaluating a TEXT transcript of a candidate's answer.
-Focus ONLY on the content, wording, and structure of the answer (not voice, tone, or body language).
+
+CRITICAL: First determine if the answer is substantive or not.
+- If the answer is gibberish, random characters, "I don't know", or has no meaningful content related to the question, set overall_score to 1-2 and leave "strengths" as an empty string "". In "improvements_overview", state clearly that no meaningful content was provided.
+- ONLY provide positive feedback in "strengths" if there are actual positive elements worth noting.
+
+**RELEVANCE IS CRITICAL**: Even well-structured answers with good details must score LOW if they don't directly address what the question asks. Read the question carefully and penalize answers that miss key aspects.
+Focus ONLY on the content, wording, and structure of the answer (not voice, tone, or body language), grammar is not important if its not affecting how you understand the content.
+
+**FEEDBACK MUST BE ULTRA-SPECIFIC AND ACTIONABLE**:
+- Don't say "add more detail" - say WHAT details to add
+- Don't say "improve structure" - say HOW to restructure (e.g., "Start with the situation, then explain your task")
+- Give EXAMPLES of sentences they could add
+- Point to SPECIFIC parts of the question they didn't address
 
 Return ONLY valid JSON with this exact structure, and nothing else:
 
 {{
   "overall_score": <integer 1-10>,
   "subscores": {{
-    "relevance": <integer 1-10>,         // how well the answer addresses the question and JD
+    "relevance": <integer 1-10>,         // how well the answer addresses the question and JD, penalize missing key elements of the question.
     "structure": <integer 1-10>,         // organization, logical flow, STAR-like clarity
     "clarity": <integer 1-10>,           // clear wording, easy to follow
     "depth": <integer 1-10>,             // concrete details, actions, and results
     "conciseness": <integer 1-10>        // avoids rambling and repetition
   }},
   "strengths": "<one short paragraph summarizing the main strengths>",
-  "improvements_overview": "<one short paragraph summarizing key areas to improve>",
+  "improvements_overview": "<A DETAILED 4-6 sentence explanation of what to improve, including specific examples and concrete suggestions. Be straight to the point, concise and actionable.>",
   "improvement_items": [
     {{
-      "aspect": "Structure",
-      "issue": "What is currently weak or missing",
-      "suggestion": "Concrete suggestion on how to rewrite or add specific content"
+      "aspect": "Relevance | Structure | Depth | Clarity",
+      "issue": "PINPOINT THE EXACT PROBLEM. Quote missing question elements. Point to specific unclear parts. Be surgical, not general.",
+      "suggestion": "GIVE CONCRETE REWRITES. Example format: 'Add this after your opening: \"The situation was that our ad targeting model had 30% false positives. My task was to reduce this to under 10% within Q2.\"' OR 'Replace your current opening with: \"At [Company], I debugged a critical issue in our recommendation system where...\"' Give them actual sentences or phrases to use."
     }},
     {{
-      "aspect": "Relevance",
-      "issue": "What is currently weak or missing",
-      "suggestion": "Concrete suggestion on how to better align with the question and JD"
+      "aspect": "Another aspect",
+      "issue": "Another specific issue with examples from their answer",
+      "suggestion": "Another concrete rewrite suggestion with example text"
     }}
-    // 2-5 items total; you may include fewer or more aspects as needed
+    // 2-5 items total; you may include fewer or more aspects as needed. Each suggestion should include EXAMPLE SENTENCES or PHRASES the candidate could use.
   ],
-  "sample_answer": "<a strong sample answer to this question, 4-8 sentences, using clear structure (e.g., STAR) and referring to the job description when helpful. Do NOT mention that you are an AI.>"
+  "sample_answer": "<a strong sample answer to this question, 6-10 sentences, using clear structure (e.g., STAR), referring to the job description when helpful and directly addressing ALL parts of the question. Include specific metrics and technical details. Do NOT mention that you are an AI.>"
 }}
 
 Scoring guidelines (1-10 for all scores):
-- 9-10: Excellent interview quality, ready for real interviews.
-- 7-8: Strong but with a few clear improvements.
-- 5-6: Mixed; some good elements but important gaps.
-- 3-4: Weak; major issues in structure, clarity, or relevance.
-- 1-2: Very weak; does not answer the question or is extremely unclear.
+- 9-10: Addresses question fully, clear structure, concrete details, ready for real interviews
+- 7-8: mostly answers question, good structure, minor gaps in detail or relevance
+- 5-6: some good elements but missing key parts of question OR unclear structure OR lack of concrete details
+- 3-4: major issues: doesn't fully address question OR very unclear OR lacks specific examples
+- 1-2: Very weak, gibberish, no meaningful content, or completely misses the question
 
 Job description:
 {jd_text}
