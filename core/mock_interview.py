@@ -150,7 +150,7 @@ def _pick_primary_project_entry(profile_id: str, resume_id: str) -> Optional[str
         return None
 
     try:
-        top_bullets = retrieve_bullets_for_profile(profile_id, jd_text, top_k=10)
+        top_bullets = retrieve_bullets_for_profile(profile_id, jd_text, resume_id, top_k=10)
     except Exception as e:
         print("[mock] _pick_primary_project_entry retrieve error:", e)
         return None
@@ -515,7 +515,8 @@ def _generate_non_intro_question(
         
         if entry_key and jd_text:
             try:
-                bullets = retrieve_bullets_for_profile(profile_id, entry_key, top_k=8)
+                resume_id = session.get("resume_id")
+                bullets = retrieve_bullets_for_profile(profile_id, entry_key, resume_id, top_k=8)
                 entry_title = entry_key.split("||", 1)[1] if "||" in entry_key else entry_key
                 text = call_llm_for_project_question(
                     jd_text=jd_text,
@@ -663,7 +664,8 @@ def get_question_for_index(
         bullets = []
         if profile_id:
             try:
-                bullets = retrieve_bullets_for_profile(profile_id, text, top_k=5)
+                resume_id = session.get("resume_id")
+                bullets = retrieve_bullets_for_profile(profile_id, text, resume_id, top_k=5)
             except Exception: pass
         
         result_data = {
@@ -685,7 +687,7 @@ def get_question_for_index(
         bullets = []
         if profile_id:
             try:
-                bullets = retrieve_bullets_for_profile(profile_id, q["question"], top_k=5)
+                bullets = retrieve_bullets_for_profile(profile_id, q["question"], resume_id, top_k=5)
             except Exception: pass
         
         q["bullets"] = bullets

@@ -584,16 +584,16 @@
         const card = document.createElement("article");
         card.className = "profile-card";
         // Unique ID for dropdown
-        const menuId = "menu-" + r.project_id;
+        const menuId = "menu-" + r.resume_id;
 
         card.innerHTML = `
                 <div class="menu-container abs-top-right">
                     <button class="menu-btn" onclick="toggleMenu('${menuId}')">⋮</button>
                     <div id="${menuId}" class="menu-dropdown">
-                        <button class="menu-item" onclick="editResume('${r.project_id}')">
+                        <button class="menu-item" onclick="editResume('${r.resume_id}')">
                             ✏️ Edit
                         </button>
-                        <button class="menu-item danger-text" onclick="deleteResume('${r.project_id}')">
+                        <button class="menu-item danger-text" onclick="deleteResume('${r.resume_id}')">
                             🗑️ Delete
                         </button>
                     </div>
@@ -601,13 +601,13 @@
 
                 <header class="profile-header-row">
                     <div>
-                        <h3 class="profile-title">${r.project_id}</h3>
+                        <h3 class="profile-title">${r.resume_id}</h3>
                         <p class="profile-company">Resume</p>
                     </div>
                 </header>
 
                 <div class="profile-body">
-                    <p class="profile-snippet">Resume ID: ${r.project_id}</p>
+                    <p class="profile-snippet">Resume ID: ${r.resume_id}</p>
                 </div>
             `;
         resumeListContainer.appendChild(card);

@@ -53,12 +53,14 @@ def load_resume_entries_and_embs(resume_id: str) -> Tuple[List[Dict[str, Any]], 
 def retrieve_bullets_for_profile(
     profile_or_id,
     question: str,
+    resume_id: str,
     top_k: int = 3,
 ) -> List[Dict[str, Any]]:
     """
     傳進來可以是 profile_id (str) 或 profile dict。
     - 如果是 str：會幫你用 get_profile() 抓 profile
     - 如果是 dict：直接用
+    - resume_id: 必須明確傳入
     """
 
     # --- 1. 把 profile_or_id 統一變成 profile dict ---
@@ -72,7 +74,6 @@ def retrieve_bullets_for_profile(
             f"got {type(profile_or_id)}"
         )
 
-    resume_id = profile["resume_id"]
     jd_text = profile.get("jd_text", "")
 
     # --- 2. 下面跟你原本的邏輯一樣 ---

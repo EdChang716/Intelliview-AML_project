@@ -14,6 +14,11 @@ retriever_model = SentenceTransformer(str(MODEL_DIR), device=DEVICE)
 def load_edited_bullets(project_id: str):
     """讀 user_data/parsed/{project_id}/experience_entries_edited.json"""
     path = USER_DATA_DIR / "parsed" / project_id / "experience_entries_edited.json"
+    
+    # Fallback to non-edited version if edited doesn't exist
+    if not path.exists():
+        path = USER_DATA_DIR / "parsed" / project_id / "experience_entries.json"
+    
     with open(path, "r", encoding="utf-8") as f:
         entries = json.load(f)
 
