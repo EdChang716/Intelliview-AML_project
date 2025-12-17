@@ -1691,3 +1691,18 @@ body.no-scroll {
   display: flex;
   gap: 8px;
 }
+
+.coach-chat-wrapper {
+  position: fixed;
+  right: 20px;
+  bottom: 90px;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.coach-launcher {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9998; /* 一定要比 chat 小 */
+}
