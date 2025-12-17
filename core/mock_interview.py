@@ -586,9 +586,16 @@ def _build_hints_for_intro(hint_level: str) -> Dict[str, Any]:
     if hint_level == "minimal": return {"show": False}
     return {
         "show": True,
-        "bullets": ["Name & Background", "Key Experiences", "Why this role?"],
-        "structure": "Past → Present → Future (60-90s)",
-        "extra": "Focus on narrative, not just reading the resume."
+        "bullets": [
+            "Start with your current role and what you do",
+            "Mention 1-2 key achievements or projects that are relevant",
+            "Briefly explain your educational background if recent grad",
+            "Connect your experience to why you're interested in THIS role",
+            "Keep it concise: aim for 60-90 seconds total",
+            "End with enthusiasm about the opportunity"
+        ],
+        "structure": "Past → Present → Future (60-90s). Example: 'I'm currently a [role] at [company], where I [key achievement]. Before that, I [relevant background]. I'm excited about this role because [connection to job].'",
+        "extra": "Focus on narrative flow, not just listing your resume. Show personality and genuine interest in the role."
     }
 
 def _build_hints_for_generic(hint_level: str) -> Dict[str, Any]:
@@ -667,7 +674,24 @@ def get_question_for_index(
                 resume_id = session.get("resume_id")
                 bullets = retrieve_bullets_for_profile(profile_id, text, resume_id, top_k=5)
             except Exception: pass
-        
+
+        # Add static example bullets for intro question if no bullets retrieved
+        if not bullets:
+            bullets = [
+                {
+                    "entry": "Example Structure",
+                    "text": "I'm currently a [Your Role] at [Company], where I focus on [key responsibility]. One project I'm proud of is [specific achievement with impact]."
+                },
+                {
+                    "entry": "Background Connection",
+                    "text": "I studied [degree/field] at [university], which gave me a strong foundation in [relevant skills]. This led me to [career path]."
+                },
+                {
+                    "entry": "Why This Role",
+                    "text": "I'm excited about this opportunity because [specific aspect of job/company] aligns with my experience in [relevant area] and my goal to [future aspiration]."
+                }
+            ]
+
         result_data = {
             "question_id": INTRO_QUESTION["question_id"],
             "question": text,

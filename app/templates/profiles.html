@@ -127,7 +127,7 @@
                 </div>
               </div>
 
-              <a href="{{ request.url_for('practice_page', profile_id=p.profile_id) }}"
+              <a href="{{ request.url_for('practice_page', profile_id=p.profile_id) }}?resume_id={{ p.resume_id }}"
                 class="btn primary-btn profile-practice-btn">
                 Practice
               </a>

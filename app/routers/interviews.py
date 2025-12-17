@@ -795,3 +795,170 @@ async def mock_report_page_profile(request: Request, profile_id: str, session_id
         "mock_report.html",
         {"request": request, "profile_id": profile_id, "report": report},
     )
+
+# ===== Mock Interview API Endpoints =====
+
+class MockNextQuestionRequest(BaseModel):
+    session_id: str
+    index: int
+    seconds_left: Optional[int] = None
+
+@router.post("/api/mock_next_question")
+async def api_mock_next_question(req: MockNextQuestionRequest):
+    """Get the next question for the mock interview"""
+    try:
+        question_data = mock_interview.get_question_for_index(
+            session_id=req.session_id,
+            index=req.index,
+            seconds_left=req.seconds_left
+        )
+        return question_data
+    except Exception as e:
+        print(f"Error in mock_next_question: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class MockAnswerRequest(BaseModel):
+    session_id: str
+    index: int
+    question_id: str
+    question_text: str
+    realtime_transcript: Optional[str] = None
+
+@router.post("/api/mock_answer")
+async def api_mock_answer(
+    meta: str = Form(...),
+    media: UploadFile = File(...)
+):
+    """Submit an answer for a mock interview question"""
+    try:
+        meta_dict = json.loads(meta)
+        req = MockAnswerRequest(**meta_dict)
+
+        # Save the video file
+        session_id = req.session_id
+        index = req.index
+
+        # Create directory for this session's media
+        from core.config import USER_DATA_DIR
+        MOCK_MEDIA_DIR = USER_DATA_DIR / "mock" / "media"
+        MOCK_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Save video file with format expected by finalize: {session_id}_{index}.webm
+        video_filename = f"{session_id}_{index}.webm"
+        video_path = MOCK_MEDIA_DIR / video_filename
+
+        content = await media.read()
+        video_path.write_bytes(content)
+
+        # Transcribe the video to get transcript
+        transcript = ""
+        if video_path.exists():
+            try:
+                transcript = transcribe_media(video_path)
+            except Exception as e:
+                print(f"Transcription failed for {video_path}: {e}")
+                transcript = "(Transcription failed)"
+
+        # Load session and add answer
+        session = mock_interview.load_mock_session(session_id)
+
+        if "answers" not in session:
+            session["answers"] = []
+
+        answer_data = {
+            "index": index,
+            "question_id": req.question_id,
+            "question_text": req.question_text,
+            "video_path": str(video_path.relative_to(USER_DATA_DIR)),
+            "realtime_transcript": req.realtime_transcript or "",
+            "transcript": transcript,  # Use Whisper transcription
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        session["answers"].append(answer_data)
+        mock_interview.save_mock_session(session)
+
+        return {"success": True, "message": "Answer saved"}
+
+    except Exception as e:
+        print(f"Error in mock_answer: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class MockFinishRequest(BaseModel):
+    session_id: str
+
+@router.post("/api/mock_finish")
+async def api_mock_finish(meta: str = Form(...)):
+    """Finalize the mock interview session"""
+    try:
+        meta_dict = json.loads(meta)
+        req = MockFinishRequest(**meta_dict)
+        result = mock_interview.finalize_mock_session(req.session_id)
+        return result
+    except Exception as e:
+        print(f"Error in mock_finish: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class TTSQuestionRequest(BaseModel):
+    text: str
+    session_id: str
+
+@router.post("/api/tts_question")
+async def api_tts_question(req: TTSQuestionRequest):
+    """Convert question text to speech using OpenAI TTS"""
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+
+        # Load session to get interviewer voice preference
+        session = mock_interview.load_mock_session(req.session_id)
+        interviewer_profile = session.get("interviewer_profile", {})
+        gender = interviewer_profile.get("gender", "auto")
+
+        # Map gender to OpenAI voice
+        voice_map = {
+            "male": "onyx",
+            "female": "nova",
+            "neutral": "echo",
+            "auto": "alloy"
+        }
+        voice = voice_map.get(gender, "alloy")
+
+        # Generate speech
+        response = client.audio.speech.create(
+            model="tts-1",
+            voice=voice,
+            input=req.text
+        )
+
+        # Return audio as streaming response
+        from fastapi.responses import StreamingResponse
+        import io
+
+        audio_bytes = io.BytesIO(response.content)
+        return StreamingResponse(audio_bytes, media_type="audio/mpeg")
+
+    except Exception as e:
+        print(f"Error in tts_question: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/mock_media/{session_id}/{index}")
+async def get_mock_video(session_id: str, index: int):
+    """Serve mock interview video files"""
+    try:
+        from fastapi.responses import FileResponse
+
+        MOCK_MEDIA_DIR = USER_DATA_DIR / "mock" / "media"
+        video_path = MOCK_MEDIA_DIR / f"{session_id}_{index}.webm"
+
+        if not video_path.exists():
+            raise HTTPException(status_code=404, detail="Video not found")
+
+        return FileResponse(video_path, media_type="video/webm")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error serving mock video: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
