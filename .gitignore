@@ -79,6 +79,7 @@ user_data/raw/
 user_data/parsed/
 user_data/embeddings/
 user_data/sessions/
+user_data/session_media/
 user_data/mock/sessions/
 user_data/mock/media/
 user_data/mock/results/

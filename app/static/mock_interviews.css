@@ -12,9 +12,9 @@ body {
   color: #111827;
 }
 
-/* Modern gradient background with subtle color zones */
+/* White background to match practice mode */
 body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ffffff;
   min-height: 100vh;
 }
 

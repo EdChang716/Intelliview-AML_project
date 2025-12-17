@@ -60,8 +60,16 @@
             <!-- 控制按鈕列 -->
             <div class="controls">
               <button id="start-btn" class="btn start-btn">Start interview</button>
-              <button id="next-btn" class="btn next-btn" disabled>Next question</button>
+              <button id="stop-recording-btn" class="btn next-btn" style="display: none;">Stop recording</button>
+              <button id="next-btn" class="btn next-btn" disabled style="display: none;">Next question</button>
               <button id="end-btn" class="btn end-btn" disabled>End interview</button>
+            </div>
+
+            <!-- Countdown display -->
+            <div id="countdown-display" style="display: none; text-align: center; margin-top: 10px;">
+              <p style="font-size: 18px; font-weight: 600; color: #6366f1;">
+                Recording starts in <span id="countdown-value">5</span>...
+              </p>
             </div>
 
             <!-- Timer + 狀態列 -->
@@ -70,14 +78,14 @@
                 <span class="timer-label">Time remaining</span>
                 <span class="timer-value" id="timer-value">--:--</span>
               </div>
+              <div class="timer-row" id="question-timer-row" style="display: none;">
+                <span class="timer-label">Question time</span>
+                <span class="timer-value" id="question-timer-value">00:00</span>
+              </div>
               <p class="status-text" id="mock-status"></p>
             </div>
 
-            <!-- REALTIME: debug 區塊顯示即時 transcript -->
-            <div class="status-row">
-              <span class="timer-label">Realtime transcript</span>
-              <span class="status-text" id="realtime-transcript"></span>
-            </div>
+            <!-- Transcript will be shown in the final report after processing -->
           </div>
         </section>
 
@@ -124,12 +132,17 @@
       const rtEl         = document.getElementById("realtime-transcript");
 
       const startBtn     = document.getElementById("start-btn");
+      const stopRecordingBtn = document.getElementById("stop-recording-btn");
       const nextBtn      = document.getElementById("next-btn");
       const endBtn       = document.getElementById("end-btn");
       const videoEl      = document.getElementById("preview");
+      const countdownDisplay = document.getElementById("countdown-display");
+      const countdownValue = document.getElementById("countdown-value");
 
       const timerRow     = document.getElementById("timer-row");
       const timerValue   = document.getElementById("timer-value");
+      const questionTimerRow = document.getElementById("question-timer-row");
+      const questionTimerValue = document.getElementById("question-timer-value");
 
       const recordingPill = document.getElementById("recording-pill");
       const recordingTextEl = recordingPill
@@ -139,6 +152,10 @@
       // Timer 狀態（只在時間模式會用到）
       let remainingSeconds = null;
       let timerId = null;
+
+      // Per-question timer
+      let questionStartTime = null;
+      let questionTimerId = null;
 
       // ---------- Utility ----------
       function setStatus(msg) {
@@ -167,6 +184,54 @@
         const mm = String(m).padStart(2, "0");
         const ss = String(s).padStart(2, "0");
         return `${mm}:${ss}`;
+      }
+
+      function startQuestionTimer() {
+        // Show and start the per-question timer
+        if (!questionTimerRow || !questionTimerValue) return;
+
+        questionTimerRow.style.display = "inline-flex";
+        questionStartTime = Date.now();
+        questionTimerValue.textContent = "00:00";
+
+        if (questionTimerId) {
+          window.clearInterval(questionTimerId);
+        }
+
+        questionTimerId = window.setInterval(() => {
+          const elapsedSeconds = Math.floor((Date.now() - questionStartTime) / 1000);
+          questionTimerValue.textContent = formatTime(elapsedSeconds);
+        }, 1000);
+      }
+
+      function stopQuestionTimer() {
+        if (questionTimerId) {
+          window.clearInterval(questionTimerId);
+          questionTimerId = null;
+        }
+      }
+
+      function startCountdownThenRecord() {
+        if (!countdownDisplay || !countdownValue) {
+          // Fallback: start recording immediately if countdown elements missing
+          startRecordingForCurrentQuestion();
+          return;
+        }
+
+        let count = 5;
+        countdownDisplay.style.display = "block";
+        countdownValue.textContent = count;
+
+        const countdownInterval = setInterval(() => {
+          count--;
+          if (count > 0) {
+            countdownValue.textContent = count;
+          } else {
+            clearInterval(countdownInterval);
+            countdownDisplay.style.display = "none";
+            startRecordingForCurrentQuestion();
+          }
+        }, 1000);
       }
 
       function startTimerIfNeeded() {
@@ -248,6 +313,8 @@
             if (currentTtsAudio === audio) {
               currentTtsAudio = null;
             }
+            // Start countdown after TTS finishes
+            startCountdownThenRecord();
           };
 
           audio.play().catch((e) => {
@@ -265,6 +332,7 @@
 
       let currentQuestionIndex = -1;  // -1 = 還沒開始
       let currentQuestion = null;     // { question_id, question, tag, bullets, hints, ... }
+      let currentAnswerUploaded = false;  // Track if current answer already uploaded
 
       // REALTIME: audio + ws 狀態
       let audioCtx = null;
@@ -485,14 +553,14 @@
           `;
         };
 
-        // 1) General tips - collapsed by default
+        // 1) General tips - OPEN by default so users see something
         if (bullets.length) {
           const content = `
             <ul>
               ${bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}
             </ul>
           `;
-          html += createCollapsibleSection('hint-general', '📌 General Tips', content, false);
+          html += createCollapsibleSection('hint-general', '📌 General Tips', content, true);
         }
 
         // 2) Structure tip - collapsed by default
@@ -533,17 +601,21 @@
         hintsBox.innerHTML = html;
       }
 
-      // Toggle hint section visibility
-      function toggleHintSection(sectionId) {
+      // Toggle hint section visibility - make it globally accessible
+      window.toggleHintSection = function(sectionId) {
         const content = document.getElementById(sectionId);
+        if (!content) {
+          console.error("Hint section not found:", sectionId);
+          return;
+        }
         const toggle = content.previousElementSibling;
 
         if (content.classList.contains('active')) {
           content.classList.remove('active');
-          toggle.classList.remove('active');
+          if (toggle) toggle.classList.remove('active');
         } else {
           content.classList.add('active');
-          toggle.classList.add('active');
+          if (toggle) toggle.classList.add('active');
         }
       }
 
@@ -572,6 +644,7 @@
       function renderQuestion(q, index) {
         currentQuestionIndex = index;
         currentQuestion = q;
+        currentAnswerUploaded = false;  // Reset upload flag for new question
 
         const tagText = q.tag || "Question";
         qTagEl.textContent  = `${tagText} · Q${index + 1}`;
@@ -580,13 +653,13 @@
         const suggestedBullets = q.bullets || [];
         renderHints(q.hints || {}, suggestedBullets);
 
-        setStatus(`Question ${index + 1} loaded. Recording has started.`);
+        setStatus(`Question ${index + 1} loaded. Listening to the question...`);
 
         // 每一題開始時重置「這一題」的 transcript（整場全文仍繼續累積）
         currentRealtimeTranscript = "";
         if (rtEl) rtEl.textContent = "";
 
-        // 題目顯示完成後，直接開始唸
+        // 題目顯示完成後，直接開始唸（TTS onended will trigger countdown)
         speakQuestion(q.question || "");
       }
 
@@ -621,17 +694,33 @@
         mediaRecorder.start();
         setStatus(`Recording answer for Q${currentQuestionIndex + 1}…`);
         setRecordingPill("recording", `Recording Q${currentQuestionIndex + 1}`);
+
+        // Show stop recording button
+        stopRecordingBtn.style.display = "inline-flex";
+        stopRecordingBtn.disabled = false;
+
+        // Start the per-question timer
+        startQuestionTimer();
       }
 
       // ---------- 停止錄製並上傳當前題目答案 ----------
       function stopRecordingAndUploadCurrentAnswer() {
         return new Promise((resolve) => {
+          // Skip if already uploaded for this question
+          if (currentAnswerUploaded) {
+            resolve();
+            return;
+          }
+
           if (!mediaRecorder || mediaRecorder.state !== "recording") {
             resolve();
             return;
           }
 
           mediaRecorder.onstop = async () => {
+            // Stop the per-question timer
+            stopQuestionTimer();
+
             const blob = new Blob(recordingChunks, { type: "video/webm" });
 
             try {
@@ -660,16 +749,17 @@
               const data = await resp.json();
               if (!resp.ok) {
                 console.error("mock_answer failed:", resp.status, data);
-                setStatus("Failed to save / transcribe this answer. I’ll still move to the next question.");
+                setStatus("Failed to save / transcribe this answer. I'll still move to the next question.");
                 setRecordingPill("idle", "Answer not saved");
               } else {
                 console.log("mock_answer ok:", data);
                 setStatus("Answer saved. Loading the next question…");
                 setRecordingPill("idle", "Answer saved");
+                currentAnswerUploaded = true;  // Mark as uploaded
               }
             } catch (err) {
               console.error("Error uploading answer:", err);
-              setStatus("Error while uploading this answer. I’ll still move to the next question.");
+              setStatus("Error while uploading this answer. I'll still move to the next question.");
               setRecordingPill("idle", "Upload error");
             }
 
@@ -705,7 +795,7 @@
           }
 
           renderQuestion(q, 0);
-          startRecordingForCurrentQuestion();
+          // Recording will start after TTS + countdown (not immediately)
 
           // 啟動倒數（如果是時間模式）
           startTimerIfNeeded();
@@ -755,12 +845,27 @@
             return;
           }
 
+          // Hide next button, will show stop recording button after countdown
+          nextBtn.style.display = "none";
+
           renderQuestion(q, nextIndex);
-          startRecordingForCurrentQuestion();
+          // Recording will start after TTS + countdown
         } catch (err) {
           console.error(err);
           setStatus("Failed to load the next question.");
         }
+      });
+
+      // ---------- Stop Recording button ----------
+      stopRecordingBtn.addEventListener("click", async () => {
+        await stopRecordingAndUploadCurrentAnswer();
+
+        // Show Next button, hide Stop Recording button
+        stopRecordingBtn.style.display = "none";
+        nextBtn.style.display = "inline-flex";
+        nextBtn.disabled = false;
+
+        setStatus("Answer saved. Click Next question to continue or End interview to finish.");
       });
 
       // ---------- End interview ----------

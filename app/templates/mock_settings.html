@@ -77,6 +77,48 @@
             </label>
           </div>
 
+          <!-- Row: mode (MOVED HERE - right after Resume) -->
+          <div class="form-row full-width">
+            <label class="field-group">
+              <span class="field-label">Interview style</span>
+              <div class="radio-row">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="practice"
+                    id="mode-practice"
+                    checked
+                  />
+                  <span class="radio-text">
+                    Practice mode
+                    <span class="radio-sub">
+                      Go back to the practice screen and answer questions at your own pace.
+                    </span>
+                  </span>
+                </label>
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="realistic"
+                    id="mode-realistic"
+                  />
+                  <span class="radio-text">
+                    Realistic mode
+                    <span class="radio-sub">
+                      Questions come one by one with limited thinking time.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </label>
+          </div>
+
+          <!-- ADVANCED OPTIONS CONTAINER (hidden by default, shown only for Realistic mode) -->
+          <div id="advanced-options" style="display: none;">
+
           <!-- Interviewer gender (for TTS voice) -->
           <div class="form-row">
             <label class="field-group">
@@ -168,43 +210,6 @@
             </label>
           </div>
 
-          <!-- Row: mode -->
-          <div class="form-row full-width">
-            <label class="field-group">
-              <span class="field-label">Interview style</span>
-              <div class="radio-row">
-                <label class="radio-option">
-                  <input
-                    type="radio"
-                    name="mode"
-                    value="practice"
-                    checked
-                  />
-                  <span class="radio-text">
-                    Practice mode
-                    <span class="radio-sub">
-                      Go back to the practice screen and answer questions at your own pace.
-                    </span>
-                  </span>
-                </label>
-
-                <label class="radio-option">
-                  <input
-                    type="radio"
-                    name="mode"
-                    value="realistic"
-                  />
-                  <span class="radio-text">
-                    Realistic mode
-                    <span class="radio-sub">
-                      Questions come one by one with limited thinking time.
-                    </span>
-                  </span>
-                </label>
-              </div>
-            </label>
-          </div>
-
           <!-- Row: length settings（只給 realistic 用） -->
           <div class="form-row full-width" id="length-block">
             <label class="field-group">
@@ -259,6 +264,8 @@
               </select>
             </label>
           </div>
+
+          </div><!-- END advanced-options -->
 
           <!-- Buttons -->
           <div class="button-row">
@@ -341,6 +348,18 @@
         }
       }
 
+      function updateAdvancedOptionsVisibility() {
+        const mode = getSelectedMode();
+        const advancedOptions = document.getElementById("advanced-options");
+        if (mode === "practice") {
+          // Practice mode: hide all advanced options
+          advancedOptions.style.display = "none";
+        } else {
+          // Realistic mode: show advanced options
+          advancedOptions.style.display = "block";
+        }
+      }
+
       function updateLengthControls() {
         const value = Array.from(lengthTypeRadios).find(r => r.checked)?.value;
         if (value === "questions") {
@@ -375,6 +394,7 @@
       modeRadios.forEach(r => {
         r.addEventListener("change", () => {
           updateLengthVisibility();
+          updateAdvancedOptionsVisibility();
         });
       });
 
@@ -396,6 +416,7 @@
       // 初始化
       updateLengthVisibility();
       updateLengthControls();
+      updateAdvancedOptionsVisibility();
 
       form.addEventListener("submit", (e) => {
         const mode = getSelectedMode();
