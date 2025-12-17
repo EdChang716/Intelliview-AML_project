@@ -13,6 +13,7 @@ body {
 body {
   background: radial-gradient(circle at top left, #e4edff 0%, transparent 55%),
     radial-gradient(circle at bottom right, #eef1f4 0%, transparent 55%);
+  min-height: 100vh;
 }
 
 /* 把中間大容器跟 header 的底色全部拿掉，避免出現「斷層」 */
