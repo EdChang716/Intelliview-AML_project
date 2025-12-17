@@ -6,6 +6,16 @@ from datetime import datetime
 import json
 import shutil
 from pathlib import Path
+import os
+import random
+import asyncio
+from tempfile import NamedTemporaryFile
+import aiohttp
+from fastapi import WebSocket
+from fastapi.responses import FileResponse, Response
+
+from core.llm_client import client
+from core import mock_interview
 
 from app.dependencies import templates
 from core.config import USER_DATA_DIR, SESSION_MEDIA_DIR
@@ -795,3 +805,342 @@ async def mock_report_page_profile(request: Request, profile_id: str, session_id
         "mock_report.html",
         {"request": request, "profile_id": profile_id, "report": report},
     )
+
+# =========================
+# Mock interview + Realtime + TTS (RESTORED)
+# =========================
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+# ---------- Voice pools ----------
+VOICE_POOLS = {
+    "male": ["onyx", "echo"],
+    "female": ["fable", "shimmer", "nova", "coral"],
+    "neutral": ["alloy", "sage", "ballad", "ash"],
+}
+ALL_VOICES = list({v for lst in VOICE_POOLS.values() for v in lst})
+
+def pick_voice(gender: str | None) -> str:
+    if not gender or gender == "auto":
+        return random.choice(ALL_VOICES)
+    gender = gender.lower()
+    if gender in ALL_VOICES:
+        return gender
+    if gender in VOICE_POOLS:
+        return random.choice(VOICE_POOLS[gender])
+    return "alloy"
+
+def combine_style_and_role_for_tts(role_desc: str | None, style_desc: str | None, extra_notes: str | None = None) -> str:
+    parts = []
+    if role_desc:
+        parts.append(f"Speak like this kind of interviewer: {role_desc}.")
+    if style_desc:
+        parts.append(f"The tone and behavior should match this description: {style_desc}.")
+    if extra_notes:
+        parts.append(f"Additional interviewer persona notes: {extra_notes}")
+    parts.append(
+        "Sound like a realistic, professional interviewer in an English job interview. "
+        "Be clear and human-like, not robotic."
+    )
+    return " ".join(parts)
+
+# ---------- TTS request model ----------
+class TTSRequest(BaseModel):
+    text: str
+    session_id: str
+
+@router.post("/api/tts_question")
+async def tts_question(req: TTSRequest):
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Empty text")
+
+    # load mock session
+    try:
+        session = mock_interview.load_mock_session(req.session_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Mock session not found")
+
+    interviewer_profile = session.get("interviewer_profile") or {}
+    gender = interviewer_profile.get("gender")
+    role_desc = interviewer_profile.get("role_resolved")
+    style_desc = interviewer_profile.get("style_resolved")
+    extra_notes = interviewer_profile.get("extra_notes")
+    tts_persona = interviewer_profile.get("tts_persona")
+
+    # reuse per-session voice if already picked
+    selected_voice = interviewer_profile.get("tts_voice")
+    if not selected_voice:
+        selected_voice = pick_voice(gender)
+        interviewer_profile["tts_voice"] = selected_voice
+        session["interviewer_profile"] = interviewer_profile
+        mock_interview.save_mock_session(session)
+
+    if tts_persona:
+        tts_instructions = (
+            f"{tts_persona} "
+            "Sound like a realistic, professional interviewer in an English job interview. "
+            "Be clear and human-like, not robotic."
+        )
+    else:
+        tts_instructions = combine_style_and_role_for_tts(role_desc, style_desc, extra_notes)
+
+    try:
+        with client.audio.speech.with_streaming_response.create(
+            model="gpt-4o-mini-tts",
+            voice=selected_voice,
+            input=text,
+            response_format="mp3",
+            instructions=tts_instructions,
+        ) as response:
+            with NamedTemporaryFile(suffix=".mp3") as tmp:
+                response.stream_to_file(tmp.name)
+                tmp.seek(0)
+                audio_bytes = tmp.read()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS failed: {str(e)}")
+
+    return Response(
+        content=audio_bytes,
+        media_type="audio/mpeg",
+        headers={"Content-Disposition": "inline; filename=tts.mp3"},
+    )
+
+@router.post("/api/mock_next_question")
+async def api_mock_next_question(payload: Dict[str, Any]):
+    session_id = payload.get("session_id")
+    index_raw = payload.get("index", 0)
+    seconds_left = payload.get("seconds_left")
+
+    if session_id is None:
+        raise HTTPException(status_code=400, detail="session_id is required")
+
+    try:
+        index = int(index_raw)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="index must be an integer")
+
+    try:
+        q = mock_interview.get_question_for_index(
+            session_id,
+            index,
+            seconds_left=seconds_left,
+        )
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    reaction_text = (q.get("reaction") or "").strip()
+    question_text = (q.get("question") or "").strip()
+
+    if reaction_text and question_text:
+        q["question"] = f"{reaction_text}\n\n{question_text}"
+    elif reaction_text and not question_text:
+        q["question"] = reaction_text
+
+    return JSONResponse(q)
+
+@router.post("/api/mock_finish")
+async def api_mock_finish(meta: str = Form(...)):
+    import json as _json
+    try:
+        meta_obj = _json.loads(meta)
+    except _json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid meta JSON")
+
+    session_id = meta_obj.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+
+    try:
+        report = mock_interview.finalize_mock_session(session_id=session_id)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to finalize mock session")
+
+    return {"session_id": session_id, "overall_score": report.get("overall_score")}
+
+@router.post("/api/mock_answer")
+async def api_mock_answer(meta: str = Form(...), media: UploadFile = File(...)):
+    import json as _json
+
+    try:
+        meta_obj = _json.loads(meta)
+    except _json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid meta JSON")
+
+    session_id = meta_obj.get("session_id")
+    index = meta_obj.get("index")
+    question_id = meta_obj.get("question_id")
+    question_text = meta_obj.get("question_text") or ""
+
+    if session_id is None or index is None:
+        raise HTTPException(status_code=400, detail="session_id and index are required")
+
+    # 1) save media
+    media_dir = mock_interview.MOCK_MEDIA_DIR
+    media_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{session_id}_{index}.webm"
+    media_path = media_dir / filename
+
+    with media_path.open("wb") as f:
+        shutil.copyfileobj(media.file, f)
+
+    # 2) transcription: prefer realtime_transcript
+    realtime_text = meta_obj.get("realtime_transcript") or ""
+    if not isinstance(realtime_text, str):
+        realtime_text = ""
+    realtime_text = realtime_text.strip()
+
+    transcript_source = "none"
+    transcript_text = ""
+
+    if realtime_text:
+        transcript_text = realtime_text
+        transcript_source = "realtime"
+    else:
+        try:
+            transcript_text = transcribe_media(
+                media_path,
+                language="en",
+                prompt="This is a mock interview answer. Please transcribe clearly.",
+            )
+            transcript_source = "batch"
+        except Exception:
+            transcript_text = ""
+            transcript_source = "error"
+
+    # 3) interviewer reaction
+    try:
+        reaction = mock_interview.generate_interviewer_reaction(question_text, transcript_text or "")
+    except Exception:
+        reaction = ""
+
+    # 4) persist
+    session = mock_interview.load_mock_session(session_id)
+    answers = session.get("answers") or []
+    answers = [a for a in answers if a.get("index") != index]
+
+    answer_obj = {
+        "index": index,
+        "question_id": question_id,
+        "question_text": question_text,
+        "transcript": transcript_text or "",
+        "reaction": reaction or "",
+        "transcript_source": transcript_source,
+    }
+
+    answers.append(answer_obj)
+    session["answers"] = answers
+    mock_interview.save_mock_session(session)
+
+    # 5) optional follow-up insertion
+    try:
+        mock_interview._maybe_add_followup_after_answer(session_id=session_id, answer=answer_obj)
+    except Exception:
+        pass
+
+    return {
+        "status": "ok",
+        "index": index,
+        "has_transcript": bool(transcript_text),
+        "reaction": reaction,
+        "transcript": transcript_text or "",
+        "transcript_source": transcript_source,
+    }
+
+@router.websocket("/ws/mock_realtime")
+async def ws_mock_realtime(client_ws: WebSocket):
+    await client_ws.accept()
+
+    if not OPENAI_API_KEY:
+        await client_ws.send_text(json.dumps({
+            "type": "error",
+            "message": "OPENAI_API_KEY is not set on server",
+        }))
+        await client_ws.close()
+        return
+
+    openai_url = "wss://api.openai.com/v1/realtime?intent=transcription"
+    session = aiohttp.ClientSession()
+
+    try:
+        async with session.ws_connect(
+            openai_url,
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "openai-beta": "realtime=v1",
+            },
+        ) as openai_ws:
+
+            await openai_ws.send_json({
+                "type": "transcription_session.update",
+                "session": {
+                    "input_audio_format": "pcm16",
+                    "input_audio_transcription": {"model": "whisper-1", "prompt": "", "language": "en"},
+                    "turn_detection": {"type": "server_vad", "threshold": 0.5, "prefix_padding_ms": 300, "silence_duration_ms": 500},
+                    "input_audio_noise_reduction": {"type": "near_field"},
+                }
+            })
+
+            async def pump_client_to_openai():
+                try:
+                    async for msg in client_ws.iter_text():
+                        try:
+                            data = json.loads(msg)
+                        except Exception:
+                            continue
+                        if data.get("type") in ("input_audio_buffer.append", "input_audio_buffer.commit"):
+                            await openai_ws.send_json(data)
+                except Exception:
+                    pass
+
+            async def pump_openai_to_client():
+                current_text = ""
+                async for msg in openai_ws:
+                    if msg.type != aiohttp.WSMsgType.TEXT:
+                        continue
+                    try:
+                        event = msg.json()
+                    except Exception:
+                        continue
+
+                    etype = event.get("type", "")
+
+                    if etype in (
+                        "conversation.item.input_audio_transcription.partial",
+                        "conversation.item.input_audio_transcription.delta",
+                    ):
+                        fragment = event.get("delta") or event.get("transcript") or ""
+                        if fragment:
+                            current_text += fragment
+                            await client_ws.send_text(json.dumps({"type": "transcript", "text": current_text}))
+                        continue
+
+                    if etype == "conversation.item.input_audio_transcription.completed":
+                        final_text = event.get("transcript") or ""
+                        if final_text:
+                            current_text = final_text
+                            await client_ws.send_text(json.dumps({"type": "transcript", "text": current_text}))
+                        continue
+
+            await asyncio.gather(pump_client_to_openai(), pump_openai_to_client())
+
+    except Exception as e:
+        try:
+            await client_ws.send_text(json.dumps({"type": "error", "message": f"realtime websocket error: {e}"}))
+        except Exception:
+            pass
+    finally:
+        await session.close()
+        try:
+            await client_ws.close()
+        except Exception:
+            pass
+
+@router.get("/mock_media/{session_id}/{index}")
+async def get_mock_media(session_id: str, index: int):
+    path = mock_interview.MOCK_MEDIA_DIR / f"{session_id}_{index}.webm"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Media not found")
+    return FileResponse(path, media_type="video/webm")
+

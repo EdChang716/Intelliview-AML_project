@@ -8,32 +8,369 @@
   <link rel="stylesheet" href="/static/practice.css?v=12" />
   <link rel="stylesheet" href="/static/global-nav.css?v=12" />
 
-  <!-- 專門針對「當前題目高亮、舊題目變淡」的覆寫樣式 -->
   <style>
-    /* 讓整個中間區塊再高一點，問題看起來更有存在感 */
+    /* ============================================================
+       Layout: Active Turn + History
+    ============================================================ */
+    .active-turn {
+      position: sticky;
+      top: 92px;
+      z-index: 5;
+      background: transparent;
+    }
+
+    .active-question-shell {
+      margin-bottom: 12px;
+    }
+
+    .history-shell {
+      margin-top: 14px;
+    }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .history-header .small-label {
+      margin: 0;
+    }
+
+    .history-body {
+      margin-top: 10px;
+    }
+
     .chat-thread {
-      max-height: 460px;
+      max-height: 340px;
+      overflow: auto;
+      padding-right: 6px;
     }
 
-    /* 當前題目卡片：白底、微微藍邊框、小陰影 */
-    .practice-question-card-current {
-      background: #ffffff;
-      border-color: rgba(37, 99, 235, 0.28);
-      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.10);
-    }
-
-    /* 舊題目：灰白底、整體稍微淡一點 */
-    .practice-question-card-previous {
+    /* ============================================================
+       History item (collapsible)
+    ============================================================ */
+    .history-item {
+      border: 1px solid rgba(229, 231, 235, 1);
+      border-radius: 14px;
       background: #f9fafb;
-      opacity: 0.65;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .history-item summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 12px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .history-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .history-summary-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .history-summary-toprow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-qchip {
+      font-size: 12px;
+      font-weight: 700;
+      color: #111827;
+      background: rgba(17, 24, 39, 0.06);
+      border-radius: 999px;
+      padding: 4px 8px;
+      white-space: nowrap;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+    }
+
+    .history-tag {
+      font-size: 12px;
+      color: #2563eb;
+      background: rgba(37, 99, 235, 0.10);
+      border-radius: 999px;
+      padding: 4px 8px;
+      white-space: nowrap;
+      border: 1px solid rgba(37, 99, 235, 0.14);
+      font-weight: 650;
+    }
+
+    .history-summary-title {
+      color: #374151;
+      font-size: 13px;
+      line-height: 1.35;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .history-chevron {
+      color: #9ca3af;
+      font-size: 14px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      transition: transform .15s ease;
+    }
+
+    .history-item[open] .history-chevron {
+      transform: rotate(180deg);
+    }
+
+    .history-item .history-content {
+      padding: 0 12px 12px 12px;
+    }
+
+    .practice-question-card-previous {
+      background: rgba(15, 23, 42, 0.02);
+      opacity: 0.86;
+      box-shadow: none;
     }
 
     .practice-question-card-previous .small-label {
-      color: #9ca3af;
+      color: rgba(15, 23, 42, 0.45);
     }
 
     .practice-question-card-previous p {
-      color: #6b7280;
+      color: rgba(15, 23, 42, 0.65);
+    }
+
+    /* ============================================================
+       ✅ Premium Question Card (make it not ugly)
+    ============================================================ */
+
+    /* tighten line length to avoid “one huge paragraph across the screen” */
+    .practice-main-focused {
+      max-width: 980px;
+    }
+
+    .practice-question-card {
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: #fff;
+      padding: 18px 18px 14px 18px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .practice-question-card-current {
+      border-color: rgba(37, 99, 235, 0.18);
+      box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+    }
+
+    .practice-question-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .question-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.08);
+      color: rgb(37, 99, 235);
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      font-weight: 650;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+    }
+
+    .question-counter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.06);
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      color: rgba(15, 23, 42, 0.78);
+      font-weight: 800;
+      font-size: 13px;
+      min-width: 44px;
+    }
+
+    /* softer labels (not screaming caps) */
+    .practice-question-card-section .small-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(15, 23, 42, 0.50);
+      margin: 0 0 7px 0;
+    }
+
+    .practice-question-card-section p {
+      margin: 0;
+      line-height: 1.50;
+      color: rgba(15, 23, 42, 0.90);
+      font-size: 15.5px;
+    }
+
+    /* keep content readable */
+    .practice-question-card .content-width {
+      max-width: 78ch;
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(15, 23, 42, 0.08);
+      margin: 14px 0;
+    }
+
+    /* ============================================================
+       ✅ Feedback Accordion UI
+    ============================================================ */
+    .feedback-accordion {
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.02);
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .feedback-accordion summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 12px;
+    }
+
+    .feedback-accordion summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .feedback-summary-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .score-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      border-radius: 999px;
+      padding: 5px 10px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: #fff;
+      color: rgba(15, 23, 42, 0.86);
+      white-space: nowrap;
+    }
+
+    .score-chip.good {
+      border-color: rgba(16, 185, 129, 0.30);
+      background: rgba(16, 185, 129, 0.10);
+      color: rgba(6, 95, 70, 0.95);
+    }
+
+    .score-chip.bad {
+      border-color: rgba(239, 68, 68, 0.30);
+      background: rgba(239, 68, 68, 0.10);
+      color: rgba(127, 29, 29, 0.95);
+    }
+
+    .feedback-summary-title {
+      font-size: 13px;
+      color: rgba(15, 23, 42, 0.70);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 52ch;
+    }
+
+    .feedback-chevron {
+      color: rgba(15, 23, 42, 0.40);
+      font-size: 13px;
+      transition: transform .15s ease;
+      flex-shrink: 0;
+    }
+
+    .feedback-accordion[open] .feedback-chevron {
+      transform: rotate(180deg);
+    }
+
+    .feedback-body {
+      padding: 12px 12px 12px 12px;
+      background: #fff;
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .answer-clamp {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .feedback-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .feedback-grid {
+        grid-template-columns: 1fr;
+      }
+      .feedback-summary-title {
+        max-width: 36ch;
+      }
+    }
+
+    .callout {
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: rgba(15, 23, 42, 0.02);
+      padding: 10px 10px;
+    }
+
+    .callout.good {
+      border-color: rgba(16, 185, 129, 0.26);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .callout.improve {
+      border-color: rgba(245, 158, 11, 0.30);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .callout .title {
+      font-weight: 800;
+      font-size: 13px;
+      color: rgba(15, 23, 42, 0.78);
+      margin-bottom: 6px;
+    }
+
+    .callout p {
+      font-size: 14px;
+      color: rgba(15, 23, 42, 0.78);
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -76,7 +413,6 @@
           </div>
         </div>
         <div class="top-bar-right">
-          <!-- Toggle for AI Helper Column -->
           <label class="toggle-switch">
             <input type="checkbox" id="show-helper-toggle" onchange="toggleHelperColumn()">
             <span class="toggle-slider"></span>
@@ -85,24 +421,31 @@
         </div>
       </div>
 
-      <!-- Main Layout Container (Single or Split) -->
       <div class="practice-layout-container" id="practice-layout-container">
-
-        <!-- Left/Center: Main Question & Answer -->
         <section class="practice-main-focused">
-          <!-- REMOVED redundant practice-question-header -->
-
-          <!-- Custom question panel -->
           <div id="custom-question-panel" class="custom-question-panel" style="display:none;">
             <div class="small-label">Custom question</div>
             <textarea id="custom-question-text" rows="3" class="textarea"
               placeholder="Type your interview question here, then click 'Use my own question'."></textarea>
           </div>
 
-          <!-- Question cards thread -->
-          <div class="chat-thread" id="chat-thread"></div>
+          <div class="active-turn" id="active-turn">
+            <div class="active-question-shell" id="active-question-shell">
+              <div id="active-question-slot"></div>
+            </div>
+          </div>
 
-          <!-- Answer input area + recording summary / launcher -->
+          <div class="history-shell card-section" id="history-shell">
+            <div class="history-header" id="history-header">
+              <div class="small-label">History (click to expand / collapse)</div>
+              <div class="history-chevron" id="history-chevron">▼</div>
+            </div>
+
+            <div class="history-body" id="history-body" style="display:none;">
+              <div class="chat-thread" id="chat-thread"></div>
+            </div>
+          </div>
+
           <div class="practice-answer-block card-section">
             <div class="small-label">Your answer</div>
             <textarea id="user-answer" rows="6" class="textarea"
@@ -131,27 +474,15 @@
             </div>
           </div>
 
-          <!-- Actions -->
           <div class="practice-main-actions">
-            <button class="btn ghost-btn" id="custom-question-btn">
-              Use my own question
-            </button>
-            <button class="btn ghost-btn" id="save-answer-btn">
-              Save answer
-            </button>
-            <button class="btn primary-btn" id="followup-question-btn">
-              Ask follow-up
-            </button>
-            <button class="btn primary-btn" id="next-question-btn">
-              Next question
-            </button>
+            <button class="btn ghost-btn" id="custom-question-btn">Use my own question</button>
+            <button class="btn ghost-btn" id="save-answer-btn">Save answer</button>
+            <button class="btn primary-btn" id="followup-question-btn">Ask follow-up</button>
+            <button class="btn primary-btn" id="next-question-btn">Next question</button>
           </div>
         </section>
 
-        <!-- Right Column: AI Helper (Hidden by default) -->
         <aside class="practice-helper-column" id="practice-helper-column" style="display: none;">
-
-          <!-- Suggested bullets panel -->
           <div class="helper-card">
             <div class="helper-card-header" onclick="togglePracticeSection('bullets-content')">
               <div class="helper-header-left">
@@ -167,7 +498,6 @@
             </div>
           </div>
 
-          <!-- AI Sample Answer Section -->
           <div class="helper-card">
             <div class="helper-card-header">
               <div class="helper-header-left">
@@ -202,15 +532,12 @@
             </div>
           </div>
         </aside>
-
       </div>
 
-      <!-- Auxiliary Drawer (Hidden by default) -->
       <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
       <aside class="auxiliary-drawer" id="auxiliary-drawer">
         <div class="drawer-header">
           <div class="drawer-title-wrapper">
-            <!-- Avatar removed as requested -->
             <div class="profile-header-info">
               <div class="profile-role-text">{{ job_title }}</div>
               <div class="profile-id-text">{{ profile_id }}</div>
@@ -219,9 +546,7 @@
           <button class="close-drawer-btn" onclick="closeDrawer()">×</button>
         </div>
         <div class="drawer-content scroll-y">
-
           <div class="drawer-menu-list">
-            <!-- Mode Setting -->
             <div class="drawer-menu-item">
               <div class="menu-item-header">
                 <span class="menu-icon">⚙️</span>
@@ -239,7 +564,6 @@
               </div>
             </div>
 
-            <!-- Conditional Sub-settings -->
             <div id="behavioral-type-wrapper" class="drawer-menu-item submenu-item" style="display: none;">
               <div class="menu-control">
                 <label class="small-label">Focus Area</label>
@@ -263,7 +587,6 @@
               </div>
             </div>
 
-            <!-- Stats -->
             <div class="drawer-menu-item">
               <div class="menu-item-header">
                 <span class="menu-icon">📊</span>
@@ -274,7 +597,6 @@
               </div>
             </div>
 
-            <!-- History -->
             <div class="drawer-menu-item">
               <div class="menu-item-header">
                 <span class="menu-icon">🕒</span>
@@ -286,7 +608,6 @@
                   View Full History
                 </a>
               </div>
-              <!-- Inline history list could go here if requested, but link is cleaner for "Menu" feel -->
               <div id="history-panel" class="history-preview-list" style="display:none;">
                 <ul id="history-list"></ul>
               </div>
@@ -296,14 +617,12 @@
               </div>
             </div>
           </div>
-
         </div>
       </aside>
 
     </main>
   </div>
 
-  <!-- Coach launcher：右下角小按鈕 -->
   <div class="coach-launcher" id="coach-launcher">
     <button class="coach-launcher-btn">
       <span class="coach-launcher-icon">💬</span>
@@ -311,7 +630,6 @@
     </button>
   </div>
 
-  <!-- Coach chat 視窗 -->
   <div class="coach-chat-wrapper" id="coach-chat-wrapper" style="display: none;">
     <div class="coach-chat-card">
       <div class="coach-chat-header">
@@ -381,7 +699,7 @@
     let CURRENT_ENTRY_KEY = null;
     let CURRENT_QUESTION = "";
     let QUESTION_COUNT = 0;
-    let currentQuestionCard = null;    // ← 目前高亮的題目卡片
+    let currentQuestionCard = null;
 
     // Follow-up state
     let CURRENT_BASE_QUESTION = "";
@@ -401,9 +719,9 @@
     let lastRecordingType = null;
     let lastRecordingDurationMs = null;
 
-    // 🔥 實際要上傳給後端的 Blob + meta
-    let currentMediaBlob = null;           // Blob(audio/video)
-    let currentMediaMeta = null;           // { type: "audio"|"video", durationMs: ... }
+    // 실제 업로드 Blob/meta
+    let currentMediaBlob = null;
+    let currentMediaMeta = null;
 
     // dragging
     let isRecDragging = false;
@@ -422,9 +740,12 @@
     const customQuestionText = document.getElementById("custom-question-text");
     const customQuestionBtn = document.getElementById("custom-question-btn");
 
-    const questionTagSpan = document.getElementById("question-type-tag");
-    const questionIndexSpan = document.getElementById("question-index");
     const chatThread = document.getElementById("chat-thread");
+    const activeQuestionSlot = document.getElementById("active-question-slot");
+    const historyHeader = document.getElementById("history-header");
+    const historyBody = document.getElementById("history-body");
+    const historyChevron = document.getElementById("history-chevron");
+
     const userAnswerTextarea = document.getElementById("user-answer");
     const bulletHintsList = document.getElementById("bullet-hints");
 
@@ -451,9 +772,6 @@
     const coachChatWrapper = document.getElementById("coach-chat-wrapper");
     const coachChatClose = document.getElementById("coach-chat-close");
 
-    const progressChip = document.getElementById("progress-chip");
-    const progressText = document.getElementById("progress-text");
-
     // Recording summary + modal DOM
     const openRecorderBtn = document.getElementById("open-recorder-btn");
     const recordingSummary = document.getElementById("recording-summary");
@@ -479,13 +797,6 @@
 
     // ---- Status helper ----
     function setProgress(statusClass, text) {
-      // 1. Drawer Chip
-      const chip1 = document.getElementById("progress-chip");
-      const text1 = document.getElementById("progress-text");
-      if (chip1) chip1.className = "status-chip " + statusClass;
-      if (text1) text1.textContent = text;
-
-      // 2. Top Bar Chip
       const chip2 = document.getElementById("progress-chip-top");
       const text2 = document.getElementById("progress-text-top");
       if (chip2) chip2.className = "status-chip " + statusClass;
@@ -507,29 +818,35 @@
       if (overlay) overlay.classList.remove("open");
     }
 
-    // ---- Helper Column Logic (Allow AI Coach) ----
+    // ---- Helper Column Logic ----
     function toggleHelperColumn() {
       const checkbox = document.getElementById("show-helper-toggle");
       const layoutContainer = document.getElementById("practice-layout-container");
       const col = document.getElementById("practice-helper-column");
 
       if (checkbox && checkbox.checked) {
-        // Split layout
         if (layoutContainer) layoutContainer.classList.add("split-active");
         if (col) col.style.display = "flex";
       } else {
-        // Single layout
         if (layoutContainer) layoutContainer.classList.remove("split-active");
         if (col) col.style.display = "none";
       }
     }
 
-    // Retain legacy togglePracticeSection if needed for internal drawer collapses
     function togglePracticeSection(id) {
       const el = document.getElementById(id);
       if (el) {
         el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
       }
+    }
+
+    // History UI toggle
+    if (historyHeader && historyBody) {
+      historyHeader.addEventListener("click", () => {
+        const isOpen = historyBody.style.display !== "none";
+        historyBody.style.display = isOpen ? "none" : "block";
+        if (historyChevron) historyChevron.textContent = isOpen ? "▼" : "▲";
+      });
     }
 
     function generateThreadId() {
@@ -542,36 +859,46 @@
       const hasTyped = typed.length > 0;
       const hasSaved = CURRENT_LAST_ANSWER && CURRENT_LAST_ANSWER.trim().length > 0;
 
-      if (CURRENT_QUESTION && !FOLLOWUP_DONE && (hasTyped || hasSaved)) {
-        followupQuestionBtn.disabled = false;
-      } else {
-        followupQuestionBtn.disabled = true;
-      }
+      followupQuestionBtn.disabled = !(CURRENT_QUESTION && !FOLLOWUP_DONE && (hasTyped || hasSaved));
     }
 
-    if (followupQuestionBtn) {
-      followupQuestionBtn.disabled = true;
-    }
+    if (followupQuestionBtn) followupQuestionBtn.disabled = true;
     if (userAnswerTextarea && followupQuestionBtn) {
-      userAnswerTextarea.addEventListener("input", () => {
-        updateFollowupButtonState();
-      });
+      userAnswerTextarea.addEventListener("input", updateFollowupButtonState);
     }
 
     // Coach launcher open/close
+    const coachChatCard = document.querySelector("#coach-chat-wrapper .coach-chat-card");
+
     if (coachLauncher && coachChatWrapper) {
-      coachLauncher.addEventListener("click", () => {
+      coachLauncher.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         coachChatWrapper.style.display = "block";
       });
     }
+
     if (coachChatClose && coachChatWrapper) {
-      coachChatWrapper.addEventListener("click", () => {
+      coachChatClose.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         coachChatWrapper.style.display = "none";
       });
     }
 
+    if (coachChatWrapper) {
+      coachChatWrapper.addEventListener("click", (e) => {
+        if (e.target === coachChatWrapper) coachChatWrapper.style.display = "none";
+      });
+    }
+
+    if (coachChatCard) {
+      coachChatCard.addEventListener("click", (e) => e.stopPropagation());
+      coachChatCard.addEventListener("mousedown", (e) => e.stopPropagation());
+    }
+
     // ============================================================
-    // Recording helpers (modal)
+    // Recording helpers (modal)  （你原本完整保留）
     // ============================================================
     function formatTime(ms) {
       const totalSec = Math.floor(ms / 1000);
@@ -580,23 +907,17 @@
       return `${m}:${s}`;
     }
 
-    function setRecorderStatus(msg, isRecording) {
-      if (recStatusSpan) {
-        recStatusSpan.textContent = msg || "";
-      }
+    function setRecorderStatus(msg) {
+      if (recStatusSpan) recStatusSpan.textContent = msg || "";
     }
 
     function resetRecorderState(keepStream) {
-      if (recTimerId) {
-        clearInterval(recTimerId);
-        recTimerId = null;
-      }
+      if (recTimerId) { clearInterval(recTimerId); recTimerId = null; }
       recStartTime = null;
       recChunks = [];
 
       if (recStartBtn) recStartBtn.disabled = false;
       if (recStopBtn) recStopBtn.disabled = true;
-
       if (recTimerSpan) recTimerSpan.textContent = "00:00";
       if (recStatusSpan) recStatusSpan.textContent = "";
 
@@ -604,27 +925,22 @@
         recMediaStream.getTracks().forEach((t) => t.stop());
         recMediaStream = null;
       }
-
       if (!keepStream && REC_MODE === "video" && recPreviewVideo) {
         recPreviewVideo.srcObject = null;
       }
-
       recMediaRecorder = null;
     }
 
     function centerRecorderDialog() {
       if (!recDialog || recorderModal.classList.contains("hidden")) return;
-
       recDialog.style.left = "auto";
       recDialog.style.top = "auto";
 
       const rect = recDialog.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-
       const left = Math.max(16, (vw - rect.width) / 2);
       const top = Math.max(16, (vh - rect.height) / 2);
-
       recDialog.style.left = left + "px";
       recDialog.style.top = top + "px";
     }
@@ -633,7 +949,6 @@
       if (!recDialog) return;
       const header = recDialog.querySelector(".rec-modal-header");
       if (!header) return;
-
       header.style.cursor = "move";
 
       header.onmousedown = (e) => {
@@ -680,10 +995,9 @@
 
     async function ensureVideoPreviewStream() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setRecorderStatus("Your browser does not support recording.", false);
+        setRecorderStatus("Your browser does not support recording.");
         return;
       }
-
       try {
         if (!recMediaStream) {
           recMediaStream = await navigator.mediaDevices.getUserMedia({
@@ -691,19 +1005,13 @@
             video: { width: 1280, height: 720 },
           });
         }
-        if (recPreviewVideo) {
-          recPreviewVideo.srcObject = recMediaStream;
-        }
-        if (recAudioPlaceholder) {
-          recAudioPlaceholder.classList.add("hidden");
-        }
-        if (recPreviewVideo) {
-          recPreviewVideo.classList.remove("hidden");
-        }
-        setRecorderStatus("Camera is on. Click Start when you're ready.", false);
+        if (recPreviewVideo) recPreviewVideo.srcObject = recMediaStream;
+        if (recAudioPlaceholder) recAudioPlaceholder.classList.add("hidden");
+        if (recPreviewVideo) recPreviewVideo.classList.remove("hidden");
+        setRecorderStatus("Camera is on. Click Start when you're ready.");
       } catch (err) {
         console.error("ensureVideoPreviewStream error", err);
-        setRecorderStatus("Camera / microphone permission denied or unavailable.", false);
+        setRecorderStatus("Camera / microphone permission denied or unavailable.");
       }
     }
 
@@ -723,43 +1031,31 @@
           recMediaStream.getTracks().forEach((t) => t.stop());
           recMediaStream = null;
         }
-        setRecorderStatus("Audio-only mode selected.", false);
+        setRecorderStatus("Audio-only mode selected.");
       } else {
         recModeAudioBtn.classList.remove("active");
         recModeVideoBtn.classList.add("active");
-        if (!recorderModal.classList.contains("hidden")) {
-          ensureVideoPreviewStream();
-        }
+        if (!recorderModal.classList.contains("hidden")) ensureVideoPreviewStream();
       }
-
       resetRecorderState(true);
     }
 
     function openRecorderModal() {
       if (!recorderModal) return;
       recorderModal.classList.remove("hidden");
-
       const recQ = document.getElementById("rec-current-question");
-      if (recQ) {
-        recQ.textContent = `Q${QUESTION_COUNT} – ${CURRENT_QUESTION}`;
-      }
-
+      if (recQ) recQ.textContent = `Q${QUESTION_COUNT} – ${CURRENT_QUESTION}`;
       setRecMode(REC_MODE);
       centerRecorderDialog();
       setupRecorderDragging();
       window.addEventListener("resize", centerRecorderDialog);
-
-      if (REC_MODE === "video") {
-        ensureVideoPreviewStream();
-      } else {
-        setRecorderStatus("Audio-only mode. Click Start when you're ready.", false);
-      }
+      if (REC_MODE === "video") ensureVideoPreviewStream();
+      else setRecorderStatus("Audio-only mode. Click Start when you're ready.");
       resetRecorderState(true);
     }
 
     function closeRecorderModal() {
       if (!recorderModal) return;
-
       if (recMediaRecorder && recMediaRecorder.state === "recording") {
         try { recMediaRecorder.stop(); } catch (e) { }
       }
@@ -768,35 +1064,26 @@
         recMediaStream.getTracks().forEach((t) => t.stop());
         recMediaStream = null;
       }
-      if (recPreviewVideo) {
-        recPreviewVideo.srcObject = null;
-      }
+      if (recPreviewVideo) recPreviewVideo.srcObject = null;
       recorderModal.classList.add("hidden");
       window.removeEventListener("resize", centerRecorderDialog);
     }
 
     async function startRecording() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setRecorderStatus("Your browser does not support recording.", false);
+        setRecorderStatus("Your browser does not support recording.");
         return;
       }
-
       try {
         resetRecorderState(true);
         if (recStartBtn) recStartBtn.disabled = true;
         if (recStopBtn) recStopBtn.disabled = false;
 
         if (REC_MODE === "audio") {
-          if (!recMediaStream) {
-            recMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          }
-          if (recPreviewVideo) {
-            recPreviewVideo.srcObject = null;
-          }
+          if (!recMediaStream) recMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          if (recPreviewVideo) recPreviewVideo.srcObject = null;
         } else {
-          if (!recMediaStream) {
-            await ensureVideoPreviewStream();
-          }
+          if (!recMediaStream) await ensureVideoPreviewStream();
         }
 
         const mime = REC_MODE === "audio" ? "audio/webm" : "video/webm";
@@ -810,17 +1097,13 @@
 
         recMediaRecorder.onstop = () => {
           const blob = new Blob(recChunks, { type: mime });
-
-          // 存成這一題要上傳的 media
           currentMediaBlob = blob;
           currentMediaMeta = {
             type: thisRecordingMode === "audio" ? "audio" : "video",
             durationMs: recStartTime ? (Date.now() - recStartTime) : null,
           };
 
-          if (lastRecordingUrl) {
-            URL.revokeObjectURL(lastRecordingUrl);
-          }
+          if (lastRecordingUrl) URL.revokeObjectURL(lastRecordingUrl);
           lastRecordingUrl = URL.createObjectURL(blob);
           lastRecordingType = thisRecordingMode;
           lastRecordingDurationMs = recStartTime ? Date.now() - recStartTime : null;
@@ -828,8 +1111,7 @@
           if (recordingSummary) recordingSummary.classList.remove("hidden");
           if (recordingSummaryMeta) {
             const dur = lastRecordingDurationMs ? formatTime(lastRecordingDurationMs) : "";
-            recordingSummaryMeta.textContent =
-              `${thisRecordingMode === "audio" ? "Audio" : "Video"} · ${dur}`;
+            recordingSummaryMeta.textContent = `${thisRecordingMode === "audio" ? "Audio" : "Video"} · ${dur}`;
           }
 
           if (thisRecordingMode === "audio") {
@@ -844,29 +1126,23 @@
             recordingPlaybackAudio.src = "";
           }
 
-          if (recPreviewVideo) {
-            recPreviewVideo.srcObject = null;
-          }
+          if (recPreviewVideo) recPreviewVideo.srcObject = null;
           if (recMediaStream) {
             recMediaStream.getTracks().forEach((t) => t.stop());
             recMediaStream = null;
           }
 
-          setRecorderStatus("Recording saved.", false);
+          setRecorderStatus("Recording saved.");
           if (recStartBtn) recStartBtn.disabled = false;
           if (recStopBtn) recStopBtn.disabled = true;
-          if (recTimerId) {
-            clearInterval(recTimerId);
-            recTimerId = null;
-          }
+          if (recTimerId) { clearInterval(recTimerId); recTimerId = null; }
           if (recTimerSpan) recTimerSpan.textContent = "00:00";
-
           closeRecorderModal();
         };
 
         recMediaRecorder.start();
         recStartTime = Date.now();
-        setRecorderStatus("Recording…", true);
+        setRecorderStatus("Recording…");
 
         if (recTimerId) clearInterval(recTimerId);
         recTimerId = setInterval(() => {
@@ -876,7 +1152,7 @@
         }, 500);
       } catch (err) {
         console.error("startRecording error", err);
-        setRecorderStatus("Permission denied or device unavailable.", false);
+        setRecorderStatus("Permission denied or device unavailable.");
         if (recStartBtn) recStartBtn.disabled = false;
         if (recStopBtn) recStopBtn.disabled = true;
         if (recMediaStream) {
@@ -886,36 +1162,25 @@
       }
     }
 
-    // 🔥 按 Stop 時現在會立刻結束錄影模式
     function stopRecording() {
       if (!recMediaRecorder || recMediaRecorder.state !== "recording") return;
-
       recMediaRecorder.stop();
-      setRecorderStatus("Finishing recording…", false);
-
+      setRecorderStatus("Finishing recording…");
       if (recStopBtn) recStopBtn.disabled = true;
-
-      if (recTimerId) {
-        clearInterval(recTimerId);
-        recTimerId = null;
-      }
-      if (recTimerSpan) {
-        recTimerSpan.textContent = "00:00";
-      }
-
+      if (recTimerId) { clearInterval(recTimerId); recTimerId = null; }
+      if (recTimerSpan) recTimerSpan.textContent = "00:00";
       if (recMediaStream) {
         recMediaStream.getTracks().forEach((t) => t.stop());
         recMediaStream = null;
       }
-      if (recPreviewVideo) {
-        recPreviewVideo.srcObject = null;
-      }
+      if (recPreviewVideo) recPreviewVideo.srcObject = null;
     }
 
     // ============================================================
     // Suggested bullets
     // ============================================================
     function renderBulletHints(bullets) {
+      if (!bulletHintsList) return;
       bulletHintsList.innerHTML = "";
 
       if (!bullets || !bullets.length) {
@@ -972,7 +1237,6 @@
 
       const bubble = document.createElement("div");
       bubble.className = "chat-bubble";
-
       const p = document.createElement("p");
       p.textContent = text;
       bubble.appendChild(p);
@@ -996,8 +1260,7 @@
       coachInput.value = "";
 
       const selectedBullets = [];
-      document
-        .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+      document.querySelectorAll("#bullet-hints input[type='checkbox']:checked")
         .forEach((cb) => {
           selectedBullets.push({
             section: cb.dataset.section,
@@ -1045,9 +1308,7 @@
       }
     }
 
-    if (coachSendBtn) {
-      coachSendBtn.addEventListener("click", sendCoachMessage);
-    }
+    if (coachSendBtn) coachSendBtn.addEventListener("click", sendCoachMessage);
 
     // ============================================================
     // Project entries
@@ -1056,10 +1317,7 @@
       if (PROJECT_ENTRIES.length > 0) return;
       try {
         const resp = await fetch(`/api/profile_entries/${PROFILE_ID}`);
-        if (!resp.ok) {
-          console.error("Failed to load profile entries", resp.status);
-          return;
-        }
+        if (!resp.ok) { console.error("Failed to load profile entries", resp.status); return; }
         const data = await resp.json();
         PROJECT_ENTRIES = (data.entries || []);
 
@@ -1074,31 +1332,113 @@
           const opt = document.createElement("option");
           opt.value = item.entry_key;
           let label = item.label || "";
-          if (label.length > MAX_LABEL_LEN) {
-            opt.textContent = label.slice(0, MAX_LABEL_LEN) + "…";
-          } else {
-            opt.textContent = label;
-          }
+          opt.textContent = label.length > MAX_LABEL_LEN ? (label.slice(0, MAX_LABEL_LEN) + "…") : label;
           opt.title = label;
           projectEntrySelect.appendChild(opt);
         });
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) { console.error(err); }
     }
 
     // ============================================================
-    // Question card
+    // ✅ Question card (Active Turn + History) — redesigned feedback
     // ============================================================
-    function createQuestionCard(tag, qIndex, questionText) {
-      // 先把舊的 current 卡片降級成 previous（淡灰）
-      if (currentQuestionCard) {
-        currentQuestionCard.classList.remove("practice-question-card-current");
-        currentQuestionCard.classList.add("practice-question-card-previous");
+
+    function makeScoreChip(score) {
+      const chip = document.createElement("span");
+      chip.className = "score-chip";
+      if (score === undefined || score === null) {
+        chip.textContent = "Score · N/A";
+        return chip;
       }
+      chip.textContent = `Score · ${score}/10`;
+      if (score >= 7) chip.classList.add("good");
+      if (score <= 3) chip.classList.add("bad");
+      return chip;
+    }
+
+    function renderFeedback(card, payload) {
+      // payload: { score, strengths, improvements, answerText, hasMediaOnly }
+      const holder = card?._feedbackHolder;
+      if (!holder) return;
+
+      holder.innerHTML = "";
+
+      const details = document.createElement("details");
+      details.className = "feedback-accordion";
+
+      const summary = document.createElement("summary");
+      const left = document.createElement("div");
+      left.className = "feedback-summary-left";
+
+      const scoreChip = makeScoreChip(payload.score);
+      const title = document.createElement("div");
+      title.className = "feedback-summary-title";
+      title.textContent = payload.score === undefined || payload.score === null
+        ? "Coach feedback (click to view)"
+        : "Coach feedback (click to view details)";
+
+      left.appendChild(scoreChip);
+      left.appendChild(title);
+
+      const chevron = document.createElement("div");
+      chevron.className = "feedback-chevron";
+      chevron.textContent = "▼";
+
+      summary.appendChild(left);
+      summary.appendChild(chevron);
+
+      const body = document.createElement("div");
+      body.className = "feedback-body";
+
+      // Answer block
+      const ansLabel = document.createElement("div");
+      ansLabel.className = "small-label";
+      ansLabel.textContent = "Your answer";
+      const ansP = document.createElement("p");
+      ansP.className = "answer-clamp";
+      ansP.textContent = payload.answerText || (payload.hasMediaOnly ? "(Recording only — transcript not available.)" : "(No text answer.)");
+
+      body.appendChild(ansLabel);
+      body.appendChild(ansP);
+
+      // If no feedback yet
+      if (!payload.hasFeedback) {
+        const hint = document.createElement("p");
+        hint.style.marginTop = "10px";
+        hint.style.color = "rgba(15, 23, 42, 0.65)";
+        hint.textContent = 'No feedback yet. Type your answer and click "Save answer".';
+        body.appendChild(hint);
+      } else {
+        // Grid callouts
+        const grid = document.createElement("div");
+        grid.className = "feedback-grid";
+
+        const good = document.createElement("div");
+        good.className = "callout good";
+        good.innerHTML = `<div class="title">✅ What you did well</div><p>${payload.strengths || "—"}</p>`;
+
+        const imp = document.createElement("div");
+        imp.className = "callout improve";
+        imp.innerHTML = `<div class="title">🛠️ How you can improve</div><p>${payload.improvements || "—"}</p>`;
+
+        grid.appendChild(good);
+        grid.appendChild(imp);
+        body.appendChild(grid);
+      }
+
+      details.appendChild(summary);
+      details.appendChild(body);
+      holder.appendChild(details);
+    }
+
+    function createQuestionCard(tag, qIndex, questionText) {
+      if (currentQuestionCard) moveCardToHistory(currentQuestionCard);
 
       const card = document.createElement("div");
       card.className = "practice-question-card practice-question-card-current";
+      card.dataset.qIndex = String(qIndex);
+      card.dataset.tag = tag || "Question";
+      card.dataset.question = questionText || "";
 
       const header = document.createElement("div");
       header.className = "practice-question-card-header";
@@ -1116,64 +1456,120 @@
       card.appendChild(header);
 
       const qBlock = document.createElement("div");
-      qBlock.className = "practice-question-card-section";
+      qBlock.className = "practice-question-card-section content-width";
+
       const qLabel = document.createElement("div");
       qLabel.className = "small-label";
       qLabel.textContent = "Question";
+
       const qP = document.createElement("p");
       qP.textContent = questionText;
+
       qBlock.appendChild(qLabel);
       qBlock.appendChild(qP);
       card.appendChild(qBlock);
 
-      const feedbackBlock = document.createElement("div");
-      feedbackBlock.className = "practice-question-card-section";
-      feedbackBlock.innerHTML = `
-        <div class="small-label">Coach feedback</div>
-        <p class="feedback-placeholder">
-          No feedback yet. Type your answer and click "Save answer".
-        </p>
-      `;
-      card.appendChild(feedbackBlock);
+      // divider
+      const div = document.createElement("div");
+      div.className = "divider";
+      card.appendChild(div);
 
-      card._feedbackBlock = feedbackBlock;
+      // Feedback holder (accordion)
+      const feedbackHolder = document.createElement("div");
+      card._feedbackHolder = feedbackHolder;
+      card.appendChild(feedbackHolder);
 
-      // ✅ 最新題目插在最上面，而不是最下面
-      if (chatThread.firstChild) {
-        chatThread.insertBefore(card, chatThread.firstChild);
-      } else {
-        chatThread.appendChild(card);
+      // initial state
+      renderFeedback(card, {
+        hasFeedback: false,
+        score: null,
+        strengths: "",
+        improvements: "",
+        answerText: "",
+        hasMediaOnly: false
+      });
+
+      if (activeQuestionSlot) {
+        activeQuestionSlot.innerHTML = "";
+        activeQuestionSlot.appendChild(card);
       }
-      chatThread.scrollTop = 0;
 
-      // 更新目前高亮卡片指標
       currentQuestionCard = card;
-
       return card;
+    }
+
+    function moveCardToHistory(card) {
+      if (!card || !chatThread) return;
+
+      card.classList.remove("practice-question-card-current");
+      card.classList.add("practice-question-card-previous");
+
+      const qIndex = card.dataset.qIndex || "?";
+      const tag = card.dataset.tag || "Question";
+      const qText = card.dataset.question || "";
+
+      const details = document.createElement("details");
+      details.className = "history-item";
+
+      const summary = document.createElement("summary");
+
+      const left = document.createElement("div");
+      left.className = "history-summary-left";
+
+      const topRow = document.createElement("div");
+      topRow.className = "history-summary-toprow";
+
+      const qChip = document.createElement("span");
+      qChip.className = "history-qchip";
+      qChip.textContent = "Q" + qIndex;
+
+      const tagChip = document.createElement("span");
+      tagChip.className = "history-tag";
+      tagChip.textContent = tag;
+
+      topRow.appendChild(qChip);
+      topRow.appendChild(tagChip);
+
+      const title = document.createElement("div");
+      title.className = "history-summary-title";
+      title.textContent = qText;
+
+      left.appendChild(topRow);
+      left.appendChild(title);
+
+      const chevron = document.createElement("div");
+      chevron.className = "history-chevron";
+      chevron.textContent = "▼";
+
+      summary.appendChild(left);
+      summary.appendChild(chevron);
+
+      const content = document.createElement("div");
+      content.className = "history-content";
+      content.appendChild(card);
+
+      details.appendChild(summary);
+      details.appendChild(content);
+
+      if (chatThread.firstChild) chatThread.insertBefore(details, chatThread.firstChild);
+      else chatThread.appendChild(details);
     }
 
     // ============================================================
     // Load next question
     // ============================================================
     async function loadNextQuestion() {
-      const prevAnswer =
-        CURRENT_MODE === "project"
-          ? (userAnswerTextarea.value.trim() || null)
-          : null;
+      const prevAnswer = (CURRENT_MODE === "project") ? (userAnswerTextarea.value.trim() || null) : null;
 
       setProgress("status-loading", `Q${QUESTION_COUNT + 1} · Loading question…`);
       userAnswerTextarea.value = "";
 
       sampleBox.classList.add("blurred");
-      sampleHintText.textContent =
-        "Hint will appear here after you generate a sample answer.";
-      sampleAnswerText.textContent =
-        'Sample answer will appear here after you click "Generate sample answer".';
-      sampleRationaleText.textContent =
-        "The coach's explanation will show here.";
+      sampleHintText.textContent = "Hint will appear here after you generate a sample answer.";
+      sampleAnswerText.textContent = 'Sample answer will appear here after you click "Generate sample answer".';
+      sampleRationaleText.textContent = "The coach's explanation will show here.";
       toggleSampleBtn.textContent = "Hide / Reveal";
 
-      // 換題時把上一題錄音清掉
       currentMediaBlob = null;
       currentMediaMeta = null;
       if (recordingSummary) recordingSummary.classList.add("hidden");
@@ -1220,9 +1616,6 @@
         updateFollowupButtonState();
 
         const tagText = data.tag || "Question";
-        if (questionTagSpan) questionTagSpan.textContent = tagText;
-        if (questionIndexSpan) questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
-
         currentQuestionCard = createQuestionCard(tagText, QUESTION_COUNT, CURRENT_QUESTION);
         renderBulletHints(data.bullets || []);
         setProgress("status-idle", `Q${QUESTION_COUNT} · Ready`);
@@ -1233,7 +1626,7 @@
     }
 
     // ============================================================
-    // Practice history（保留原函式，但 panel 不再會被打開）
+    // Practice history (drawer) & stats  （你原本保留邏輯）
     // ============================================================
     async function loadPracticeHistory() {
       if (!historyList) return;
@@ -1241,18 +1634,11 @@
 
       try {
         const resp = await fetch(`/api/practice_history/${PROFILE_ID}`);
-        if (!resp.ok) {
-          historyList.innerHTML = "<li>Failed to load history.</li>";
-          return;
-        }
+        if (!resp.ok) { historyList.innerHTML = "<li>Failed to load history.</li>"; return; }
         const data = await resp.json();
         const turns = data.turns || [];
 
-        if (!turns.length) {
-          historyList.innerHTML = "<li>No history yet.</li>";
-          return;
-        }
-
+        if (!turns.length) { historyList.innerHTML = "<li>No history yet.</li>"; return; }
         historyList.innerHTML = "";
 
         const order = ["project", "auto", "behavioral", "technical", "case", "custom"];
@@ -1277,48 +1663,40 @@
                       "Custom questions";
           historyList.appendChild(header);
 
-          grouped[m]
-            .slice()
-            .reverse()
-            .forEach((t) => {
-              const li = document.createElement("li");
-              li.className = "history-item";
+          grouped[m].slice().reverse().forEach((t) => {
+            const li = document.createElement("li");
+            li.className = "history-item";
 
-              const title = document.createElement("div");
-              title.className = "history-title";
-              title.textContent = t.question || "(No question)";
+            const title = document.createElement("div");
+            title.className = "history-title";
+            title.textContent = t.question || "(No question)";
 
-              const meta = document.createElement("div");
-              meta.className = "history-meta";
-              const ts = t.timestamp ? t.timestamp.slice(0, 19).replace("T", " ") : "";
-              const score = (t.score !== undefined && t.score !== null)
-                ? ` · Score ${t.score}/10`
-                : "";
-              meta.textContent = `${ts}${score}`;
+            const meta = document.createElement("div");
+            meta.className = "history-meta";
+            const ts = t.timestamp ? t.timestamp.slice(0, 19).replace("T", " ") : "";
+            const score = (t.score !== undefined && t.score !== null) ? ` · Score ${t.score}/10` : "";
+            meta.textContent = `${ts}${score}`;
 
-              li.appendChild(title);
-              li.appendChild(meta);
+            li.appendChild(title);
+            li.appendChild(meta);
 
-              li.addEventListener("click", () => {
-                const q = t.question || "";
-                const ua = t.user_answer || "(No saved user answer)";
-                const sa = t.sample_answer || "(No sample answer)";
-                const sc = (t.score !== undefined && t.score !== null)
-                  ? `${t.score}/10`
-                  : "N/A";
+            li.addEventListener("click", () => {
+              const q = t.question || "";
+              const ua = t.user_answer || "(No saved user answer)";
+              const sa = t.sample_answer || "(No sample answer)";
+              const sc = (t.score !== undefined && t.score !== null) ? `${t.score}/10` : "N/A";
 
-                sampleBox.classList.remove("blurred");
-                sampleHintText.textContent = `Question: ${q}`;
-                sampleAnswerText.textContent = `Sample answer: ${sa}`;
-                sampleRationaleText.textContent =
-                  `Your answer: ${ua}  ·  Score: ${sc}`;
+              sampleBox.classList.remove("blurred");
+              sampleHintText.textContent = `Question: ${q}`;
+              sampleAnswerText.textContent = `Sample answer: ${sa}`;
+              sampleRationaleText.textContent = `Your answer: ${ua}  ·  Score: ${sc}`;
 
-                toggleSampleBtn.textContent = "Hide answer";
-                setProgress("status-idle", "Viewing past practice");
-              });
-
-              historyList.appendChild(li);
+              toggleSampleBtn.textContent = "Hide answer";
+              setProgress("status-idle", "Viewing past practice");
             });
+
+            historyList.appendChild(li);
+          });
         });
       } catch (err) {
         console.error(err);
@@ -1326,23 +1704,16 @@
       }
     }
 
-    // ============================================================
-    // Stats
-    // ============================================================
     async function loadPracticeStats() {
       const box = document.getElementById("stats-summary");
       if (!box) return;
       try {
         const resp = await fetch(`/api/practice_stats/${PROFILE_ID}`);
-        if (!resp.ok) {
-          box.innerHTML = '<p class="stats-empty">No stats yet.</p>';
-          return;
-        }
+        if (!resp.ok) { box.innerHTML = '<p class="stats-empty">No stats yet.</p>'; return; }
         const data = await resp.json();
         const by = data.by_mode || {};
 
-        // Helper to create valid stat item
-        const mkStat = (label, val, icon) => `
+        const mkStat = (label, val) => `
           <div class="stat-item">
             <span class="stat-val">${val || 0}</span>
             <span class="stat-lbl">${label}</span>
@@ -1359,7 +1730,6 @@
              ${mkStat('Proj.', by.project)}
           </div>
         `;
-
       } catch (e) {
         box.innerHTML = '<p class="stats-error">Failed to load stats.</p>';
       }
@@ -1372,7 +1742,7 @@
     });
 
     // ============================================================
-    // Follow-up question
+    // Follow-up question （保留）
     // ============================================================
     async function askFollowupQuestion() {
       if (!CURRENT_QUESTION || !CURRENT_BASE_QUESTION) {
@@ -1386,7 +1756,6 @@
 
       const typed = userAnswerTextarea.value.trim();
       const baseAnswer = typed || (CURRENT_LAST_ANSWER ? CURRENT_LAST_ANSWER.trim() : "");
-
       if (!baseAnswer) {
         setProgress("status-error", "Type your answer before asking a follow-up.");
         updateFollowupButtonState();
@@ -1394,14 +1763,9 @@
       }
 
       const selectedBullets = [];
-      document
-        .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+      document.querySelectorAll("#bullet-hints input[type='checkbox']:checked")
         .forEach((cb) => {
-          selectedBullets.push({
-            section: cb.dataset.section,
-            entry: cb.dataset.entry,
-            text: cb.dataset.text,
-          });
+          selectedBullets.push({ section: cb.dataset.section, entry: cb.dataset.entry, text: cb.dataset.text });
         });
 
       const payload = {
@@ -1431,7 +1795,6 @@
         }
 
         const data = await resp.json();
-
         if (data.done || !data.question) {
           FOLLOWUP_DONE = true;
           updateFollowupButtonState();
@@ -1443,13 +1806,9 @@
         QUESTION_COUNT += 1;
         CURRENT_IS_FOLLOWUP = true;
         CURRENT_THREAD_ID = data.thread_id || CURRENT_THREAD_ID;
-
         CURRENT_LAST_ANSWER = "";
 
         const tagText = data.tag || "Follow-up";
-        if (questionTagSpan) questionTagSpan.textContent = tagText;
-        if (questionIndexSpan) questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
-
         currentQuestionCard = createQuestionCard(tagText, QUESTION_COUNT, CURRENT_QUESTION);
         renderBulletHints(data.bullets || []);
         userAnswerTextarea.value = "";
@@ -1462,28 +1821,18 @@
       }
     }
 
-    if (followupQuestionBtn) {
-      followupQuestionBtn.addEventListener("click", askFollowupQuestion);
-    }
+    if (followupQuestionBtn) followupQuestionBtn.addEventListener("click", askFollowupQuestion);
 
     // ============================================================
-    // Generate sample answer
+    // Generate sample answer （保留）
     // ============================================================
     async function generateSampleAnswer() {
-      if (!CURRENT_QUESTION) {
-        setProgress("status-error", "No question yet.");
-        return;
-      }
+      if (!CURRENT_QUESTION) { setProgress("status-error", "No question yet."); return; }
 
       const selectedBullets = [];
-      document
-        .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+      document.querySelectorAll("#bullet-hints input[type='checkbox']:checked")
         .forEach((cb) => {
-          selectedBullets.push({
-            section: cb.dataset.section,
-            entry: cb.dataset.entry,
-            text: cb.dataset.text,
-          });
+          selectedBullets.push({ section: cb.dataset.section, entry: cb.dataset.entry, text: cb.dataset.text });
         });
 
       const userText = userAnswerTextarea.value.trim() || null;
@@ -1532,13 +1881,27 @@
 
         LAST_SAMPLE_ANSWER = answerText;
         COACH_CHAT_HISTORY = [];
-        coachChatThread.innerHTML = "";
+        if (coachChatThread) coachChatThread.innerHTML = "";
 
         setProgress("status-success", `Q${QUESTION_COUNT} · Sample answer ready`);
       } catch (err) {
         console.error(err);
         setProgress("status-error", "Error generating sample answer.");
       }
+    }
+
+    if (generateAnswerBtn) generateAnswerBtn.addEventListener("click", generateSampleAnswer);
+
+    if (toggleSampleBtn) {
+      toggleSampleBtn.addEventListener("click", () => {
+        if (sampleBox.classList.contains("blurred")) {
+          sampleBox.classList.remove("blurred");
+          toggleSampleBtn.textContent = "Hide answer";
+        } else {
+          sampleBox.classList.add("blurred");
+          toggleSampleBtn.textContent = "Hide / Reveal";
+        }
+      });
     }
 
     // ============================================================
@@ -1561,29 +1924,21 @@
         projectEntryWrapper.style.display = "none";
         customQuestionPanel.style.display = "block";
       } else {
-        // auto / technical / case
         behavioralTypeWrapper.style.display = "none";
         projectEntryWrapper.style.display = "none";
         customQuestionPanel.style.display = "none";
       }
 
       userAnswerTextarea.value = "";
-
       CURRENT_BASE_QUESTION = "";
       CURRENT_THREAD_ID = null;
       CURRENT_IS_FOLLOWUP = false;
       FOLLOWUP_DONE = false;
       CURRENT_LAST_ANSWER = "";
-
       updateFollowupButtonState();
 
-      if (CURRENT_MODE !== "custom") {
-        loadNextQuestion();
-      } else {
-        setProgress("status-idle",
-          "Custom mode · Type your question."
-        );
-      }
+      if (CURRENT_MODE !== "custom") loadNextQuestion();
+      else setProgress("status-idle", "Custom mode · Type your question.");
     });
 
     behavioralTypeSelect.addEventListener("change", () => {
@@ -1591,6 +1946,7 @@
       if (CURRENT_MODE === "behavioral") {
         QUESTION_COUNT = 0;
         chatThread.innerHTML = "";
+        if (activeQuestionSlot) activeQuestionSlot.innerHTML = "";
         currentQuestionCard = null;
         loadNextQuestion();
       }
@@ -1601,93 +1957,64 @@
       if (CURRENT_MODE === "project" && CURRENT_ENTRY_KEY) {
         QUESTION_COUNT = 0;
         chatThread.innerHTML = "";
+        if (activeQuestionSlot) activeQuestionSlot.innerHTML = "";
         currentQuestionCard = null;
         loadNextQuestion();
       }
     });
 
-    nextQuestionBtn.addEventListener("click", () => {
-      loadNextQuestion();
-    });
-
-    generateAnswerBtn.addEventListener("click", () => {
-      generateSampleAnswer();
-    });
-
-    toggleSampleBtn.addEventListener("click", () => {
-      if (sampleBox.classList.contains("blurred")) {
-        sampleBox.classList.remove("blurred");
-        toggleSampleBtn.textContent = "Hide answer";
-      } else {
-        sampleBox.classList.add("blurred");
-        toggleSampleBtn.textContent = "Hide / Reveal";
-      }
-    });
+    if (nextQuestionBtn) nextQuestionBtn.addEventListener("click", () => loadNextQuestion());
 
     // Custom question flow
-    customQuestionBtn.addEventListener("click", async () => {
-      if (CURRENT_MODE !== "custom") {
-        questionModeSelect.value = "custom";
-        questionModeSelect.dispatchEvent(new Event("change"));
-      }
-
-      const qText = customQuestionText.value.trim();
-      if (!qText) {
-        setProgress("status-error", "Please type your custom question first.");
-        return;
-      }
-
-      CURRENT_QUESTION = qText;
-      QUESTION_COUNT += 1;
-
-      CURRENT_BASE_QUESTION = CURRENT_QUESTION;
-      CURRENT_THREAD_ID = generateThreadId();
-      CURRENT_IS_FOLLOWUP = false;
-      FOLLOWUP_DONE = false;
-      CURRENT_LAST_ANSWER = "";
-
-      updateFollowupButtonState();
-
-      questionTagSpan.textContent = "Custom";
-      questionIndexSpan.textContent = "Q" + QUESTION_COUNT;
-
-      currentQuestionCard = createQuestionCard("Custom", QUESTION_COUNT, CURRENT_QUESTION);
-      userAnswerTextarea.value = "";
-      setProgress("status-loading", `Q${QUESTION_COUNT} · Fetching suggested bullets…`);
-
-      try {
-        const resp = await fetch("/api/retrieve_bullets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            profile_id: PROFILE_ID,
-            resume_id: RESUME_ID,
-            question: CURRENT_QUESTION,
-          }),
-        });
-
-        if (!resp.ok) {
-          console.error("retrieve_bullets failed", resp.status, await resp.text());
-          renderBulletHints([]);
-          setProgress("status-idle",
-            `Q${QUESTION_COUNT} · Custom question ready (no bullets)`
-          );
-          return;
+    if (customQuestionBtn) {
+      customQuestionBtn.addEventListener("click", async () => {
+        if (CURRENT_MODE !== "custom") {
+          questionModeSelect.value = "custom";
+          questionModeSelect.dispatchEvent(new Event("change"));
         }
 
-        const data = await resp.json();
-        renderBulletHints(data.bullets || []);
-        setProgress("status-idle", `Q${QUESTION_COUNT} · Custom question ready`);
-      } catch (err) {
-        console.error(err);
-        renderBulletHints([]);
-        setProgress("status-error",
-          `Q${QUESTION_COUNT} · Custom question ready (error loading bullets)`
-        );
-      }
-    });
+        const qText = customQuestionText.value.trim();
+        if (!qText) { setProgress("status-error", "Please type your custom question first."); return; }
 
-    // History 點擊整排 → 直接導到 history 頁
+        CURRENT_QUESTION = qText;
+        QUESTION_COUNT += 1;
+
+        CURRENT_BASE_QUESTION = CURRENT_QUESTION;
+        CURRENT_THREAD_ID = generateThreadId();
+        CURRENT_IS_FOLLOWUP = false;
+        FOLLOWUP_DONE = false;
+        CURRENT_LAST_ANSWER = "";
+        updateFollowupButtonState();
+
+        currentQuestionCard = createQuestionCard("Custom", QUESTION_COUNT, CURRENT_QUESTION);
+        userAnswerTextarea.value = "";
+        setProgress("status-loading", `Q${QUESTION_COUNT} · Fetching suggested bullets…`);
+
+        try {
+          const resp = await fetch("/api/retrieve_bullets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ profile_id: PROFILE_ID, question: CURRENT_QUESTION }),
+          });
+
+          if (!resp.ok) {
+            console.error("retrieve_bullets failed", resp.status, await resp.text());
+            renderBulletHints([]);
+            setProgress("status-idle", `Q${QUESTION_COUNT} · Custom question ready (no bullets)`);
+            return;
+          }
+
+          const data = await resp.json();
+          renderBulletHints(data.bullets || []);
+          setProgress("status-idle", `Q${QUESTION_COUNT} · Custom question ready`);
+        } catch (err) {
+          console.error(err);
+          renderBulletHints([]);
+          setProgress("status-error", `Q${QUESTION_COUNT} · Custom question ready (error loading bullets)`);
+        }
+      });
+    }
+
     if (historyToggleRow) {
       historyToggleRow.addEventListener("click", () => {
         window.location.href = "{{ request.url_for('practice_history_page', profile_id=profile_id) }}";
@@ -1695,14 +2022,11 @@
     }
 
     // ============================================================
-    // Save & score answer
+    // ✅ Save & score answer — now renders premium feedback accordion
     // ============================================================
     if (saveAnswerBtn) {
       saveAnswerBtn.addEventListener("click", async () => {
-        if (!CURRENT_QUESTION) {
-          setProgress("status-error", "No question to save answer for.");
-          return;
-        }
+        if (!CURRENT_QUESTION) { setProgress("status-error", "No question to save answer for."); return; }
 
         const userText = userAnswerTextarea.value.trim();
         const hasText = userText.length > 0;
@@ -1713,19 +2037,12 @@
           return;
         }
 
-        if (hasText) {
-          CURRENT_LAST_ANSWER = userText;
-        }
+        if (hasText) CURRENT_LAST_ANSWER = userText;
 
         const selectedBullets = [];
-        document
-          .querySelectorAll("#bullet-hints input[type='checkbox']:checked")
+        document.querySelectorAll("#bullet-hints input[type='checkbox']:checked")
           .forEach((cb) => {
-            selectedBullets.push({
-              section: cb.dataset.section,
-              entry: cb.dataset.entry,
-              text: cb.dataset.text,
-            });
+            selectedBullets.push({ section: cb.dataset.section, entry: cb.dataset.entry, text: cb.dataset.text });
           });
 
         const metaPayload = {
@@ -1748,36 +2065,14 @@
 
         const formData = new FormData();
         formData.append("meta", JSON.stringify(metaPayload));
-        if (hasMedia) {
-          formData.append(
-            "media",
-            currentMediaBlob,
-            `answer-${Date.now()}.webm`
-          );
-        }
+        if (hasMedia) formData.append("media", currentMediaBlob, `answer-${Date.now()}.webm`);
 
-        if (hasMedia && !hasText) {
-          setProgress(
-            "status-loading",
-            `Q${QUESTION_COUNT} · Uploading & transcribing recording…`
-          );
-        } else if (hasMedia && hasText) {
-          setProgress(
-            "status-loading",
-            `Q${QUESTION_COUNT} · Uploading recording & scoring answer…`
-          );
-        } else {
-          setProgress(
-            "status-loading",
-            `Q${QUESTION_COUNT} · Saving & scoring answer…`
-          );
-        }
+        if (hasMedia && !hasText) setProgress("status-loading", `Q${QUESTION_COUNT} · Uploading & transcribing recording…`);
+        else if (hasMedia && hasText) setProgress("status-loading", `Q${QUESTION_COUNT} · Uploading recording & scoring answer…`);
+        else setProgress("status-loading", `Q${QUESTION_COUNT} · Saving & scoring answer…`);
 
         try {
-          const resp = await fetch("/api/save_user_answer_with_media", {
-            method: "POST",
-            body: formData,
-          });
+          const resp = await fetch("/api/save_user_answer_with_media", { method: "POST", body: formData });
 
           if (!resp.ok) {
             console.error("save_user_answer_with_media failed", resp.status, await resp.text());
@@ -1789,10 +2084,9 @@
           const score = data.score;
           const strengths = data.strengths || "";
           const improvements = data.improvements || "";
-
           const transcript = data.transcript || "";
-          let effectiveAnswer = userText;
 
+          let effectiveAnswer = userText;
           if (!effectiveAnswer && transcript) {
             effectiveAnswer = transcript;
             userAnswerTextarea.value = transcript;
@@ -1801,83 +2095,23 @@
             CURRENT_LAST_ANSWER = effectiveAnswer;
           }
 
-          if (currentQuestionCard && currentQuestionCard._feedbackBlock) {
-            const block = currentQuestionCard._feedbackBlock;
-            block.innerHTML = "";
-
-            const yourLabel = document.createElement("div");
-            yourLabel.className = "small-label";
-            yourLabel.textContent = "Your answer";
-
-            const yourP = document.createElement("p");
-            if (effectiveAnswer) {
-              yourP.textContent = effectiveAnswer;
-            } else if (hasMedia) {
-              yourP.textContent = "(Recording only — transcript not available.)";
-            } else {
-              yourP.textContent = "(No text answer.)";
-            }
-
-            const coachLabel = document.createElement("div");
-            coachLabel.className = "small-label";
-            coachLabel.textContent = "Coach feedback";
-
-            const scoreP = document.createElement("p");
-            if (score !== undefined && score !== null) {
-              scoreP.innerHTML = `I'd rate this answer <strong>${score}/10.</strong>`;
-            } else if (effectiveAnswer) {
-              scoreP.textContent = "No score yet.";
-            } else {
-              scoreP.textContent = "No score yet (no text answer).";
-            }
-
-            block.appendChild(yourLabel);
-            block.appendChild(yourP);
-            block.appendChild(coachLabel);
-            block.appendChild(scoreP);
-
-            if (strengths) {
-              const sLabel = document.createElement("p");
-              sLabel.innerHTML = "<strong>What you did well:</strong>";
-              const sText = document.createElement("p");
-              sText.textContent = strengths;
-              block.appendChild(sLabel);
-              block.appendChild(sText);
-            }
-
-            if (improvements) {
-              const iLabel = document.createElement("p");
-              iLabel.innerHTML = "<strong>How you can improve:</strong>";
-              const iText = document.createElement("p");
-              iText.innerHTML = improvements.replace(/\n/g, '<br>');
-              block.appendChild(iLabel);
-              block.appendChild(iText);
-            }
+          if (currentQuestionCard) {
+            renderFeedback(currentQuestionCard, {
+              hasFeedback: true,
+              score,
+              strengths,
+              improvements,
+              answerText: effectiveAnswer,
+              hasMediaOnly: !!hasMedia && !effectiveAnswer
+            });
+            // auto open after save
+            const d = currentQuestionCard._feedbackHolder?.querySelector("details");
+            if (d) d.open = true;
           }
 
-          if (score !== undefined && score !== null) {
-            if (transcript && !userText) {
-              setProgress(
-                "status-success",
-                `Q${QUESTION_COUNT} · Transcribed & scored (${score}/10)`
-              );
-            } else {
-              setProgress(
-                "status-success",
-                `Q${QUESTION_COUNT} · Answer saved & scored (${score}/10)`
-              );
-            }
-          } else if (transcript) {
-            setProgress(
-              "status-success",
-              `Q${QUESTION_COUNT} · Recording transcribed (no score)`
-            );
-          } else {
-            setProgress(
-              "status-success",
-              `Q${QUESTION_COUNT} · Recording saved (no text score yet)`
-            );
-          }
+          if (score !== undefined && score !== null) setProgress("status-success", `Q${QUESTION_COUNT} · Saved & scored (${score}/10)`);
+          else if (transcript) setProgress("status-success", `Q${QUESTION_COUNT} · Transcribed (no score)`);
+          else setProgress("status-success", `Q${QUESTION_COUNT} · Saved (no score)`);
 
           updateFollowupButtonState();
           loadPracticeStats();
@@ -1895,58 +2129,14 @@
     // ============================================================
     // Recording button bindings
     // ============================================================
-    if (openRecorderBtn) {
-      openRecorderBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        openRecorderModal();
-      });
-    }
-    if (recModeAudioBtn) {
-      recModeAudioBtn.addEventListener("click", () => setRecMode("audio"));
-    }
-    if (recModeVideoBtn) {
-      recModeVideoBtn.addEventListener("click", () => setRecMode("video"));
-    }
-    if (recStartBtn) {
-      recStartBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        startRecording();
-      });
-    }
-    if (recStopBtn) {
-      recStopBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        stopRecording();
-      });
-    }
-    if (recCloseBtn) {
-      recCloseBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        closeRecorderModal();
-      });
-    }
+    if (openRecorderBtn) openRecorderBtn.addEventListener("click", (e) => { e.preventDefault(); openRecorderModal(); });
+    if (recModeAudioBtn) recModeAudioBtn.addEventListener("click", () => setRecMode("audio"));
+    if (recModeVideoBtn) recModeVideoBtn.addEventListener("click", () => setRecMode("video"));
+    if (recStartBtn) recStartBtn.addEventListener("click", (e) => { e.preventDefault(); startRecording(); });
+    if (recStopBtn) recStopBtn.addEventListener("click", (e) => { e.preventDefault(); stopRecording(); });
+    if (recCloseBtn) recCloseBtn.addEventListener("click", (e) => { e.preventDefault(); closeRecorderModal(); });
     if (recorderModal) {
-      recorderModal.addEventListener("click", (e) => {
-        if (e.target === recorderModal) {
-          closeRecorderModal();
-        }
-      });
-    }
-
-    // ============================================================
-    // Collapsible section toggle function
-    // ============================================================
-    function togglePracticeSection(sectionId) {
-      const content = document.getElementById(sectionId);
-      const toggle = content.previousElementSibling;
-
-      if (content.classList.contains('active')) {
-        content.classList.remove('active');
-        toggle.classList.remove('active');
-      } else {
-        content.classList.add('active');
-        toggle.classList.add('active');
-      }
+      recorderModal.addEventListener("click", (e) => { if (e.target === recorderModal) closeRecorderModal(); });
     }
   </script>
 </body>
