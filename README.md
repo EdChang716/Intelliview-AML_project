@@ -185,6 +185,42 @@ We fine-tuned a `SentenceTransformer` model using **Contrastive Learning (Multip
     - This means the AI is much more likely to "remember" the right part of your resume when coaching you.
 
 ### Embedding Space Visualization
-*Before vs. After Fine-tuning (t-SNE)*
-- **Before**: Questions and relevant bullets were scattered.
-- **After**: Questions cluster tightly with their relevant experience bullets.
+
+We use t-SNE projections to visualize how well the embedding models cluster relevant question-answer pairs. The fine-tuned models show significantly tighter clustering compared to the scattered distribution of the baselines.
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/tsne-mpnet-base.png" width="400" alt="MPNet Base t-SNE"/>
+      <br/>
+      <b>all-mpnet-base-v2 (Baseline)</b>
+      <br/>
+      <em>Scattered distribution - questions and bullets poorly aligned</em>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/tsne-minilm-base.png" width="400" alt="MiniLM Base t-SNE"/>
+      <br/>
+      <b>all-MiniLM-L6-v2 (Baseline)</b>
+      <br/>
+      <em>Similar scattering with weak semantic clustering</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/tsne-finetuned-mpnet.png" width="400" alt="Fine-tuned MPNet t-SNE"/>
+      <br/>
+      <b>Fine-tuned MPNet (Ours)</b>
+      <br/>
+      <em>Tighter clustering - questions align with relevant bullets</em>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/tsne-finetuned-minilm.png" width="400" alt="Fine-tuned MiniLM t-SNE"/>
+      <br/>
+      <b>Fine-tuned MiniLM (Ours)</b>
+      <br/>
+      <em>Strong clustering - relevant pairs pulled together in vector space</em>
+    </td>
+  </tr>
+</table>
+
+*t-SNE visualization of embedding spaces. Top row: baseline models with scattered question-bullet distributions. Bottom row: our fine-tuned models showing significantly tighter clustering of relevant question-answer pairs, enabling more accurate retrieval during interview coaching.*
