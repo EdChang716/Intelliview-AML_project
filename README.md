@@ -2,6 +2,8 @@
 
 **An AI-Powered Interview Coaching System**
 
+Members: Chih-Yuan Chang, Ching-Heng Huang, Chung-Yeh Yang, Nan Tang Wu
+
 Intelliview Coach helps job seekers (DS/SWE/ML/AI Engineers) prepare for interviews by providing real-time, personalized feedback. It integrates **LLM-based question generation**, **RAG-based resume retrieval**, and **multimodal analysis** into a seamless interactive experience.
 
 ---
